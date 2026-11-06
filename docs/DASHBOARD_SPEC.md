@@ -3,7 +3,7 @@
 This spec describes a Power BI report built on the CSV extracts in `data/powerbi/`. It lists
 the data model, the Power Query steps, every DAX measure, and each page with its visuals.
 The last section gives values from the 2026-11-06 snapshot so each measure can be checked
-after it is built.
+after it is built. `TABLEAU_SPEC.md` builds the same dashboard in Tableau from the same files.
 
 To create the extracts:
 

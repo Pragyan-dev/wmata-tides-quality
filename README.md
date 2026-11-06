@@ -11,7 +11,8 @@ moves when bad data is filtered out. It also runs prior work,
 and compares the results.
 
 Stack: Python 3.12, DuckDB, Parquet, dbt-duckdb, frictionless, pytest, ruff, GitHub Actions.
-Power BI is built by hand from the extracts (`docs/DASHBOARD_SPEC.md`).
+The dashboard is built by hand from the extracts, in Power BI (`docs/DASHBOARD_SPEC.md`)
+or Tableau, which runs on macOS (`docs/TABLEAU_SPEC.md`).
 
 ## What it does
 
@@ -33,7 +34,7 @@ Power BI is built by hand from the extracts (`docs/DASHBOARD_SPEC.md`).
 6. **Metrics.** On-time performance by route, stop, and hour, using WMATA's published
    definition by default; headway adherence; bunching; and the same OTP at loose, moderate,
    and strict quality levels.
-7. **Dashboard extracts.** `scripts/export_powerbi.py` writes CSVs for Power BI.
+7. **Dashboard extracts.** `scripts/export_powerbi.py` writes CSVs for Power BI or Tableau.
 
 ## Architecture
 
@@ -221,7 +222,7 @@ dbt_project/
 spec/tides-v1.0/        official TIDES v1.0 schemas (CC-BY-4.0)
 scripts/                start/stop, exports, report, comparison, sample builder
 tests/                  pytest
-docs/                   METHODOLOGY, DATA_QUALITY, DASHBOARD_SPEC, dbt docs site
+docs/                   METHODOLOGY, DATA_QUALITY, DASHBOARD_SPEC, TABLEAU_SPEC, dbt docs
 data/                   gitignored, except data/sample/
 ```
 
