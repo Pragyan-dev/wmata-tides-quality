@@ -1,0 +1,44 @@
+name: wmata_tides
+version: "1.0.0"
+config-version: 2
+profile: wmata_tides
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target"]
+
+vars:
+  # Inputs. Paths are relative to dbt_project/, where dbt is run.
+  data_dir: "../data"
+  agency_timezone: "America/New_York"
+
+  # Optional collection window, so numbers in docs are reproducible while the
+  # collector keeps running. ISO timestamps with offset, or null for all data.
+  collected_after: null
+  collected_before: null
+
+  # Flat x/y projection. Meters per degree at the center of the WMATA region.
+  # Error is under 1% anywhere in the service area.
+  origin_lat: 38.9
+  origin_lon: -77.03
+  meters_per_deg_lat: 110540
+  meters_per_deg_lon: 86680  # 111320 * cos(38.9 degrees)
+
+  # Stop arrival inference (docs/METHODOLOGY.md explains each one).
+  grid_cell_m: 250           # grid used to find nearby shape segments quickly
+  max_snap_distance_m: 100   # pings farther than this from the trip's shape are not used
+  stop_zone_m: 30            # a bus arrives at stop_dist - 30 m and departs at stop_dist + 30 m
+  smoothing_window_pings: 2  # pass 2 snapping looks at this many pings before and after
+
+models:
+  wmata_tides:
+    +materialized: table
+    staging:
+      +schema: staging
+    intermediate:
+      +schema: intermediate
+    marts:
+      tides:
+        +schema: tides

@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: stg_rt__vehicle_positions
+    description: >
+      One row per distinct vehicle ping (vehicle_id, vehicle_ts). Repeats of the same ping
+      in later fetches are dropped; times_seen records how many fetches carried it.
+      Timestamps are TIMESTAMPTZ shown in America/New_York.
+    columns:
+      - name: location_ping_id
+        description: vehicle_id and vehicle epoch joined with a dash.
+        tests: [unique, not_null]
+      - name: service_date
+        description: Trip start_date when on a trip, else the local date of the ping.
+        tests: [not_null]
+      - name: event_ts
+        description: Time the vehicle reported the position.
+      - name: ping_age_s
+        description: Seconds between the vehicle timestamp and the fetch that first saw it.
+      - name: times_seen
+        description: Number of fetches that carried this exact ping.
+
+  - name: stg_rt__trip_updates
+    description: Last reported state for each trip and stop in TripUpdates.
+
+  - name: stg_gtfs__feed_versions
+    description: Static GTFS version downloaded on each collection date.
+    columns:
+      - name: collection_date
+        tests: [unique, not_null]
+
+  - name: stg_gtfs__routes
+    description: GTFS routes, typed, with feed_version.
+  - name: stg_gtfs__trips
+    description: GTFS trips, typed, with feed_version.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [feed_version, trip_id]
+  - name: stg_gtfs__stops
+    description: GTFS stops, typed, with feed_version.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [feed_version, stop_id]
+  - name: stg_gtfs__stop_times
+    description: GTFS stop_times with times as seconds after the GTFS service day start.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [feed_version, trip_id, stop_sequence]
+  - name: stg_gtfs__shapes
+    description: GTFS shape points, typed, with feed_version.
+  - name: stg_gtfs__calendar
+    description: GTFS calendar, typed, with feed_version.
+  - name: stg_gtfs__calendar_dates
+    description: GTFS calendar_dates, typed, with feed_version.

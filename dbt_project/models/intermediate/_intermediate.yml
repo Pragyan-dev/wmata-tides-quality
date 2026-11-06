@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: int_service_date_feed_versions
+    description: Static GTFS version in effect on each service date.
+    columns:
+      - name: service_date
+        tests: [unique, not_null]
+      - name: feed_version
+        tests: [not_null]
+
+  - name: int_shape_segments
+    description: Shapes as straight segments in flat x/y meters with distance along the shape.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [feed_version, shape_id, segment_seq]
+
+  - name: int_shape_stop_distances
+    description: >
+      Distance along the shape for each stop on each shape. is_out_of_order marks stops
+      whose nearest shape point falls before an earlier stop (usually loops).
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [feed_version, shape_id, stop_sequence]
+
+  - name: int_pings_snapped
+    description: >
+      Pings on a trip, snapped to the trip's shape in two passes. progress_m is the running
+      maximum of along_m. Pings farther than max_snap_distance_m from the shape are off route.
+    columns:
+      - name: location_ping_id
+        tests: [unique, not_null]
+
+  - name: int_stop_visits_inferred
+    description: >
+      Inferred arrival and departure at each scheduled stop of each observed trip, with the
+      gap between the two pings used for interpolation.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id, vehicle_id, stop_sequence]

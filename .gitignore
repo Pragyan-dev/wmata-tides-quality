@@ -22,3 +22,4 @@ dbt_project/dbt_packages/
 
 .DS_Store
 *.egg-info/
+dbt_project/.user.yml

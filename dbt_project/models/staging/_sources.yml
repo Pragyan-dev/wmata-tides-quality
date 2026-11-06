@@ -1,0 +1,37 @@
+version: 2
+
+sources:
+  - name: rt
+    description: >
+      Parsed GTFS-Realtime feeds written by the collector, one Parquet file per fetch,
+      partitioned by America/New_York collection date.
+    meta:
+      external_location: >-
+        read_parquet('{{ var("data_dir") }}/parsed/{name}/date=*/*.parquet', hive_partitioning = true)
+    tables:
+      - name: vehicle_positions
+        description: One row per vehicle entity per fetch.
+      - name: trip_updates
+        description: One row per stop_time_update per trip update per fetch.
+
+  - name: gtfs
+    description: >
+      Static GTFS versions unpacked by `python -m collector load-static`. All columns are text.
+      The folder name is the version id (first 12 characters of the zip SHA-256).
+    meta:
+      external_location: >-
+        read_parquet('{{ var("data_dir") }}/static/*/{name}.parquet', filename = true)
+    tables:
+      - name: routes
+      - name: trips
+      - name: stops
+      - name: stop_times
+      - name: shapes
+      - name: calendar
+      - name: calendar_dates
+      - name: feed_info
+      - name: feed_versions
+        description: Maps each collection date to the static version downloaded that day.
+        meta:
+          external_location: >-
+            read_csv('{{ var("data_dir") }}/static/feed_versions.csv', header = true, all_varchar = true)

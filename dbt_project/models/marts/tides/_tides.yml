@@ -1,0 +1,84 @@
+version: 2
+
+# These tests mirror the TIDES v1.0 table schemas (required fields, primary keys,
+# allowed values). scripts/export_tides.py then validates the exported CSVs against
+# the official schemas with frictionless.
+
+models:
+  - name: vehicle_locations
+    description: TIDES vehicle_locations. One row per distinct vehicle ping.
+    columns:
+      - name: location_ping_id
+        tests: [unique, not_null]
+      - name: event_timestamp
+        tests: [not_null]
+      - name: vehicle_id
+        tests: [not_null]
+      - name: current_status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Incoming at', 'Stopped at', 'In transit to']
+      - name: trip_type
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['In service']
+      - name: schedule_relationship
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Scheduled', 'Skipped', 'Added', 'Missing']
+
+  - name: trips_performed
+    description: >
+      TIDES trips_performed. One row per (trip, vehicle) seen in VehiclePositions.
+      trip_id_performed = trip_id-vehicle_id.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id_performed]
+    columns:
+      - name: service_date
+        tests: [not_null]
+      - name: trip_id_performed
+        tests: [not_null]
+      - name: vehicle_id
+        tests: [not_null]
+      - name: direction_id
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+      - name: schedule_relationship
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Scheduled', 'Added', 'Unscheduled', 'Canceled', 'Duplicated']
+
+  - name: stop_visits
+    description: >
+      TIDES stop_visits. One row per scheduled stop of every performed trip with pings on
+      its shape. Times are inferred (docs/METHODOLOGY.md).
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id_performed, trip_stop_sequence]
+    columns:
+      - name: service_date
+        tests: [not_null]
+      - name: trip_id_performed
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('trips_performed')
+                field: trip_id_performed
+      - name: trip_stop_sequence
+        tests: [not_null]
+      - name: schedule_relationship
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Scheduled', 'Skipped', 'Added', 'Missing']

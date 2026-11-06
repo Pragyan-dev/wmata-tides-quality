@@ -11,6 +11,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("run", help="poll the feeds until stopped")
     sub.add_parser("status", help="is the collector running, and is data arriving")
+    sub.add_parser("load-static", help="unpack static GTFS versions to Parquet for dbt")
     today = local_date(int(time.time()))
     for name, help_text in [
         ("rows-per-minute", "rows per minute from parsed Parquet"),
@@ -32,6 +33,10 @@ def main() -> None:
         from collector.count import print_rows_per_minute
 
         print_rows_per_minute(args.date)
+    elif args.command == "load-static":
+        from collector.load_static import load_static
+
+        load_static()
     elif args.command == "reparse":
         from collector.reparse import reparse
 

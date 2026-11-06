@@ -9,10 +9,12 @@ description = "WMATA bus GTFS-Realtime to TIDES, with data quality checks"
 requires-python = ">=3.11"
 dependencies = [
     "requests>=2.32",
-    "gtfs-realtime-bindings>=1.0",
+    "gtfs-realtime-bindings==2.2.0",  # 3.x needs protobuf>=7; dbt needs <7
     "pyarrow>=15",
     "python-dotenv>=1.0",
     "duckdb>=1.0",
+    "dbt-duckdb>=1.9",
+    "frictionless>=5.18",
 ]
 
 [project.optional-dependencies]
