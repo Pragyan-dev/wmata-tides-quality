@@ -1,0 +1,24 @@
+# secrets
+.env
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# data: keep only the committed sample
+data/*
+!data/sample/
+!data/sample/**
+
+# dbt
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+*.duckdb
+*.duckdb.wal
+
+.DS_Store
+*.egg-info/
