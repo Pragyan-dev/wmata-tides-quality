@@ -1,0 +1,152 @@
+version: 2
+
+# Tables exported for Power BI by scripts/export_powerbi.py. Metrics use the quality
+# level in var metrics_quality_level (default moderate). On-time follows WMATA's bus
+# definition by default: 2 minutes early to 7 minutes late at timepoints; the last
+# timepoint is on time if its arrival is at most 7 minutes late. Change otp_early_s and
+# otp_late_s to use a different window.
+
+models:
+  - name: timepoint_events
+    description: >
+      Fact table. One row per timepoint of every performed trip, whether or not a time was
+      inferred. Filter actual_ts is not null for OTP.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id_performed, trip_stop_sequence]
+    columns:
+      - name: service_date
+        description: GTFS service date.
+      - name: trip_id_performed
+        description: TIDES performed trip ID, trip_id-vehicle_id.
+      - name: trip_id_scheduled
+        description: GTFS trip_id.
+      - name: route_id
+        description: GTFS route_id. Joins to dim_routes.
+      - name: direction_id
+        description: GTFS direction_id, 0 or 1.
+      - name: trip_stop_sequence
+        description: GTFS stop_sequence of the timepoint.
+      - name: stop_id
+        description: GTFS stop_id. Joins to dim_stops.
+      - name: vehicle_id
+        description: Vehicle that operated the trip.
+      - name: is_last_timepoint
+        description: True for the trip's last timepoint, where arrival is measured.
+      - name: measured_event
+        description: "'departure', or 'arrival' at the last timepoint."
+      - name: scheduled_ts
+        description: Scheduled time of the measured event, America/New_York.
+      - name: actual_ts
+        description: Inferred time of the measured event. Null when no time was inferred.
+      - name: time_method
+        description: "'shape' or 'feed_stop_sequence' (first stop fallback). See METHODOLOGY.md."
+      - name: interpolation_gap_s
+        description: Seconds between the two pings the time was interpolated from.
+      - name: scheduled_hour
+        description: Hour of scheduled_ts, 0 to 23.
+      - name: deviation_s
+        description: actual_ts minus scheduled_ts in seconds. Positive is late.
+      - name: is_on_time
+        description: On time under the configured window. Null when no time was inferred.
+      - name: is_early
+        description: More than otp_early_s early (never true at the last timepoint).
+      - name: is_late
+        description: More than otp_late_s late.
+      - name: passes_moderate
+        description: Has a time and passes the moderate quality filter.
+      - name: passes_strict
+        description: Has a time and passes the strict quality filter.
+      - name: pct_off_route
+        description: Share of the trip's pings more than 100 m from its shape.
+      - name: cut_by_window
+        description: Trip was scheduled to start before or end after the collected window.
+
+  - name: otp_by_route
+    description: OTP by service date, route, and direction.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, route_id, direction_id]
+    columns:
+      - name: trips
+        description: Performed trips with at least one counted timepoint.
+      - name: timepoint_events
+        description: Timepoint events counted (denominator).
+      - name: on_time_events
+        description: Events on time (numerator).
+      - name: otp_pct
+        description: on_time_events / timepoint_events x 100.
+      - name: early_pct
+        description: Share of events more than otp_early_s early.
+      - name: late_pct
+        description: Share of events more than otp_late_s late.
+      - name: median_deviation_min
+        description: Median of deviation_s, in minutes.
+      - name: p90_deviation_min
+        description: 90th percentile of deviation_s, in minutes.
+
+  - name: otp_by_stop
+    description: OTP by service date and timepoint stop, across routes, with stop location.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, stop_id]
+
+  - name: otp_by_hour
+    description: OTP by service date and scheduled hour, systemwide.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, scheduled_hour]
+
+  - name: otp_by_route_hour
+    description: OTP by service date, route, and scheduled hour.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, route_id, scheduled_hour]
+
+  - name: headways
+    description: >
+      Fact table. One row per pair of consecutive scheduled trips at a timepoint where both
+      buses have an inferred departure.
+    columns:
+      - name: trip_id
+        description: GTFS trip_id of the later-scheduled bus.
+      - name: prev_trip_id
+        description: GTFS trip_id of the bus scheduled just before it.
+      - name: scheduled_headway_s
+        description: Scheduled seconds between the two departures.
+      - name: actual_headway_s
+        description: Inferred seconds between the two departures. Negative when the buses swapped order.
+      - name: headway_ratio
+        description: actual_headway_s / scheduled_headway_s.
+      - name: is_bunched
+        description: actual_headway_s under bunching_threshold_s (default 120).
+      - name: headway_limit_s
+        description: WMATA headway rule. Scheduled headway plus 15%, rounded up to a minute.
+      - name: is_headway_on_time
+        description: actual_headway_s at or under headway_limit_s.
+      - name: is_frequent
+        description: Scheduled headway 12 minutes or less.
+
+  - name: headway_by_route
+    description: Headway adherence and bunching by service date, route, and direction.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, route_id, direction_id]
+
+  - name: dim_routes
+    description: Route names and colors from the latest static GTFS.
+    columns:
+      - name: route_id
+        tests: [unique, not_null]
+
+  - name: dim_stops
+    description: Stop names and locations from the latest static GTFS.
+    columns:
+      - name: stop_id
+        tests: [unique, not_null]

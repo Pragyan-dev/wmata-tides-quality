@@ -50,6 +50,17 @@ vars:
   otp_early_s: 120
   otp_late_s: 420
 
+  # Metrics marts use this quality level: loose, moderate, or strict.
+  metrics_quality_level: moderate
+
+  # Bunching and headways. A bus is bunched when it departs a timepoint less than
+  # bunching_threshold_s after the bus scheduled just before it on the same route and
+  # direction. Headway adherence follows WMATA's headway rule: actual headway no more
+  # than scheduled headway plus 15%, rounded up to the next minute.
+  bunching_threshold_s: 120
+  headway_allowance_pct: 15
+  frequent_headway_max_s: 720  # WMATA treats 12 minutes or better as headway-based
+
   # Quality filter levels for the sensitivity analysis.
   moderate_max_gap_s: 120
   moderate_max_off_route_pct: 20

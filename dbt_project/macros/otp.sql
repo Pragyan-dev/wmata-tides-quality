@@ -37,3 +37,21 @@
      and is_complete)
     {%- endif -%}
 {%- endmacro %}
+
+{# The quality filter the metrics marts use (var metrics_quality_level). #}
+{% macro metrics_filter() -%}
+    (actual_ts is not null and {{ passes_filter(var('metrics_quality_level')) }})
+{%- endmacro %}
+
+{# Standard OTP columns for a group of timepoint events. #}
+{% macro otp_columns() -%}
+    count(*) as timepoint_events,
+    count(*) filter (where is_on_time) as on_time_events,
+    count(*) filter (where is_early) as early_events,
+    count(*) filter (where is_late) as late_events,
+    round(100.0 * avg(is_on_time::int), 2) as otp_pct,
+    round(100.0 * avg(is_early::int), 2) as early_pct,
+    round(100.0 * avg(is_late::int), 2) as late_pct,
+    round(median(deviation_s) / 60.0, 2) as median_deviation_min,
+    round(quantile_cont(deviation_s, 0.9) / 60.0, 2) as p90_deviation_min
+{%- endmacro %}

@@ -48,7 +48,9 @@ nearest as (
     from projected
     qualify row_number() over (
         partition by feed_version, shape_id, stop_sequence
-        order by sqrt(pow(px - (x1 + f * (x2 - x1)), 2) + pow(py - (y1 + f * (y2 - y1)), 2))
+        order by
+            sqrt(pow(px - (x1 + f * (x2 - x1)), 2) + pow(py - (y1 + f * (y2 - y1)), 2)),
+            seg_start_m + f * seg_len_m  -- ties: prefer the earlier point on the shape
     ) = 1
 )
 

@@ -19,7 +19,7 @@ not WMATA bus service in general.
 
 ## 1. Checks
 
-dbt runs 86 models and tests on every build. The tests cover:
+dbt runs 108 models and tests on every build. The tests cover:
 
 - **Not null and uniqueness** on every primary key, including the TIDES composite keys.
 - **Accepted values** on every enum: GTFS-RT `current_status`, trip and stop
@@ -48,6 +48,7 @@ Custom checks live in `dbt_project/models/marts/quality`. Thresholds are dbt var
 | Trip | overlaps_feed_gap | trip running while the collector missed polls |
 | Trip | cut_by_window | scheduled to start before or end after the collected window |
 | Trip | incomplete_timepoints | at least one timepoint has no inferred time |
+| Trip | scheduled_trip_not_observed | scheduled entirely inside the window, but no vehicle was seen operating it |
 | Stop visit | no_inferred_visit, timepoint_no_inferred_visit | no arrival or departure inferred |
 
 The `data_quality` mart summarizes every check by service date and route: rows checked,
@@ -72,8 +73,9 @@ rows flagged, and share flagged.
 | Trip | overlaps_feed_gap | 2,594 | 612 | 23.59% |
 | Trip | cut_by_window | 2,594 | 1,131 | 43.60% |
 | Trip | incomplete_timepoints | 2,594 | 1,735 | 66.89% |
-| Stop visit | no_inferred_visit | 111,940 | 35,404 | 31.63% |
-| Stop visit | timepoint_no_inferred_visit | 18,041 | 6,018 | 33.36% |
+| Trip | scheduled_trip_not_observed | 1,488 | 58 | 3.90% |
+| Stop visit | no_inferred_visit | 111,940 | 35,420 | 31.64% |
+| Stop visit | timepoint_no_inferred_visit | 18,041 | 6,023 | 33.39% |
 
 ### What the results mean
 
@@ -117,30 +119,30 @@ quality filter levels.
 
 | Level | Keeps | Timepoint events | Trips | Routes | OTP | Early | Late |
 |---|---|---|---|---|---|---|---|
-| Loose | every timepoint with an inferred time | 11,995 | 2,325 | 109 | 76.02% | 10.60% | 13.37% |
-| Moderate | interpolation gap 120 s or less, off-route share 20% or less, 10+ on-route pings | 10,719 | 2,153 | 109 | 76.31% | 10.61% | 13.08% |
-| Strict | moderate, plus gap 60 s or less, off-route 5% or less, shape-method times only, no impossible-speed or stale pings, no coverage gap, no missed polls, trip inside the window, every timepoint inferred | 2,067 | 370 | 92 | 77.65% | 11.27% | 11.08% |
+| Loose | every timepoint with an inferred time | 11,990 | 2,324 | 109 | 76.06% | 10.55% | 13.39% |
+| Moderate | interpolation gap 120 s or less, off-route share 20% or less, 10+ on-route pings | 10,713 | 2,152 | 109 | 76.36% | 10.55% | 13.10% |
+| Strict | moderate, plus gap 60 s or less, off-route 5% or less, shape-method times only, no impossible-speed or stale pings, no coverage gap, no missed polls, trip inside the window, every timepoint inferred | 2,068 | 370 | 92 | 77.66% | 11.27% | 11.07% |
 
-Moderate filtering keeps 89.4% of events and moves OTP by 0.29 points. Strict filtering
-keeps 17.2% of events and moves OTP by 1.63 points.
+Moderate filtering keeps 89.3% of events and moves OTP by 0.30 points. Strict filtering
+keeps 17.2% of events and moves OTP by 1.60 points.
 
 ### Which filter matters
 
-Each filter applied alone, sorted by how much it moves OTP from 76.02%:
+Each filter applied alone, sorted by how much it moves OTP from 76.06%:
 
 | Filter alone | Events kept | OTP | Change |
 |---|---|---|---|
-| Time from shape method only | 92.2% | 74.82% | -1.20 pp |
-| All timepoints on the trip inferred | 48.2% | 76.71% | +0.69 pp |
-| No coverage gap on the trip | 58.2% | 76.64% | +0.62 pp |
-| Interpolation gap 120 s or less | 93.8% | 76.49% | +0.47 pp |
-| Interpolation gap 60 s or less | 92.7% | 76.44% | +0.42 pp |
-| Trip inside the window | 72.9% | 75.69% | -0.33 pp |
-| No stale ping on the trip | 86.4% | 76.21% | +0.19 pp |
-| No missed polls during the trip | 65.9% | 76.14% | +0.12 pp |
-| Off-route share 5% or less | 92.0% | 75.93% | -0.09 pp |
-| 10+ on-route pings | 99.3% | 76.10% | +0.08 pp |
-| No impossible-speed ping | 99.7% | 75.97% | -0.05 pp |
+| Time from shape method only | 92.2% | 74.86% | -1.20 pp |
+| No coverage gap on the trip | 58.2% | 76.71% | +0.65 pp |
+| All timepoints on the trip inferred | 48.2% | 76.71% | +0.65 pp |
+| Interpolation gap 120 s or less | 93.8% | 76.53% | +0.47 pp |
+| Interpolation gap 60 s or less | 92.7% | 76.48% | +0.42 pp |
+| Trip inside the window | 72.9% | 75.71% | -0.35 pp |
+| No stale ping on the trip | 86.4% | 76.25% | +0.19 pp |
+| No missed polls during the trip | 65.9% | 76.18% | +0.12 pp |
+| Off-route share 5% or less | 92.1% | 75.97% | -0.09 pp |
+| 10+ on-route pings | 99.3% | 76.14% | +0.08 pp |
+| No impossible-speed ping | 99.7% | 76.01% | -0.05 pp |
 
 Dropping first-stop times from the feed-sequence fallback lowers OTP by 1.20 points. Those
 events are first timepoints, where buses start on schedule more often, so this is partly a
@@ -150,14 +152,14 @@ long interpolation gaps raise OTP by under half a point.
 ### Routes move more than the system
 
 For the 22 routes with at least 100 loose and 30 strict events, strict minus loose OTP had
-a median of +1.58 points, a 10th percentile of -3.37 points, and a 90th percentile of +7.82
-points. The range was -5.52 to +22.17 points.
+a median of +1.58 points, a 10th percentile of -3.38 points, and a 90th percentile of +7.62
+points. The range was -6.03 to +22.17 points.
 
 | Route | Loose events | Strict events | Loose OTP | Strict OTP | Change |
 |---|---|---|---|---|---|
 | D40 | 183 | 32 | 71.58% | 93.75% | +22.17 pp |
 | D6X | 183 | 52 | 80.87% | 100.00% | +19.13 pp |
-| C37 | 140 | 42 | 70.71% | 78.57% | +7.86 pp |
+| C37 | 140 | 43 | 71.43% | 79.07% | +7.64 pp |
 | M12 | 164 | 39 | 82.32% | 89.74% | +7.42 pp |
 | D60 | 195 | 66 | 65.13% | 71.21% | +6.08 pp |
 
@@ -167,7 +169,7 @@ number by several points.
 ### Answer to the project question
 
 For a systemwide midday number, data quality in the public feed moved on-time performance
-by less than 2 points: 76.02% with no filtering, 77.65% with strict filtering. For a single
+by less than 2 points: 76.06% with no filtering, 77.66% with strict filtering. For a single
 route, the same filters moved it by up to 22 points. The feed is usable for a systemwide
 trend. It is not reliable enough to rank individual routes without quality filters and
 larger samples, and the strict filter that makes route numbers defensible keeps only 17.2%
@@ -177,7 +179,10 @@ of timepoint events.
 
 - No check can measure raw GPS error, because WMATA appears to snap positions before
   publishing (section 2).
-- Missed trips are not measured. trips_performed only lists trips a vehicle operated.
+- Missed trips are only bounded, not measured. Of 1,488 trips scheduled entirely inside
+  the window, no vehicle was seen operating 58 (3.9%), or 38 of 883 (4.3%) when trips that
+  overlap the sleep gap are left out. A trip can be unobserved because it was missed, or
+  because its bus sent no trip_id or a wrong one; the feed cannot tell these apart.
 - The service area check is a bounding box, not WMATA's real service boundary. A ping on a
   road inside the box but outside the service area passes.
 - Stop arrival accuracy has only a consistency check (METHODOLOGY.md section 3.5), not a
@@ -244,9 +249,9 @@ vehicle, position, bearing, speed, and timestamp. The two keys select the same p
   arrival nor a departure time (Unix time 0).
 
 **Where gtfs-rt-to-tides does something this pipeline does not.** Listing scheduled trips
-that never appeared is the right idea: it shows missed service, which this pipeline does
-not measure (section 4). It needs a TIDES-valid way to say so, such as a separate missed
-trips table.
+that never appeared is the right idea: it shows missed service, which this pipeline
+only bounds with a separate quality model (section 4). In TIDES it needs a valid way to
+say so, since trips_performed requires a vehicle.
 
 **Trip start and end times.** gtfs-rt-to-tides takes them from TripUpdates, using the last
 time reported for the lowest and highest stop sequence it saw. This pipeline infers them

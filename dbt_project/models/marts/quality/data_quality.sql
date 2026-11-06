@@ -75,12 +75,20 @@ feed_flags as (
     into name check_name value flagged
 ),
 
+unobserved_flags as (
+    select service_date, route_id, 'scheduled_trip_not_observed' as check_name,
+           (not was_observed)::int as flagged
+    from {{ ref('dq_unobserved_trips') }}
+),
+
 all_flags as (
     select service_date, route_id, 'ping' as check_level, check_name, flagged from ping_flags
     union all
     select service_date, route_id, 'trip', check_name, flagged from trip_flags
     union all
     select service_date, route_id, 'stop_visit', check_name, flagged from stop_flags
+    union all
+    select service_date, route_id, 'trip', check_name, flagged from unobserved_flags
     union all
     select service_date, route_id, 'feed', feed || ':' || check_name, flagged from feed_flags
 )

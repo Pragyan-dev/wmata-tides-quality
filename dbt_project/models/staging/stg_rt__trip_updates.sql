@@ -13,11 +13,14 @@ select
     strptime(start_date, '%Y%m%d')::date as service_date,
     stop_sequence,
     max(route_id) as route_id,
-    arg_max(vehicle_id, fetch_ts_utc) as vehicle_id,
-    arg_max(trip_schedule_relationship, fetch_ts_utc) as trip_schedule_relationship,
-    arg_max(stu_schedule_relationship, fetch_ts_utc) as last_stop_schedule_relationship,
+    -- Latest report wins. Ties within one fetch break by value so runs are repeatable.
+    arg_max(vehicle_id, (fetch_ts_utc, vehicle_id)) as vehicle_id,
+    arg_max(trip_schedule_relationship, (fetch_ts_utc, trip_schedule_relationship))
+        as trip_schedule_relationship,
+    arg_max(stu_schedule_relationship, (fetch_ts_utc, stu_schedule_relationship))
+        as last_stop_schedule_relationship,
     bool_or(stu_schedule_relationship = 'SKIPPED') as ever_skipped,
-    to_timestamp(arg_max(arrival_time, fetch_ts_utc)) as last_predicted_arrival,
+    to_timestamp(arg_max(arrival_time, (fetch_ts_utc, arrival_time))) as last_predicted_arrival,
     count(*) as n_updates,
     to_timestamp(min(fetch_ts_utc)) as first_seen_at,
     to_timestamp(max(fetch_ts_utc)) as last_seen_at

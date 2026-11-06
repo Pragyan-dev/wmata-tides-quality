@@ -50,3 +50,10 @@ models:
       - unique_combination:
           arguments:
             columns: [service_date, trip_id, vehicle_id, stop_sequence]
+
+  - name: int_scheduled_trips
+    description: Every trip scheduled on each service date, from calendar and calendar_dates.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id]

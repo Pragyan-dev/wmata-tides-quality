@@ -155,6 +155,42 @@ QUERIES = {
         select route_id, loose_events, strict_events, loose_otp_pct, strict_otp_pct, strict_minus_loose_pp
         from quality.dq_otp_sensitivity_by_route where loose_events >= 100 and strict_events >= 30
         order by abs(strict_minus_loose_pp) desc limit 5""",
+    # ---------- metrics (Phase 4)
+    "Systemwide OTP at the metrics quality level": """
+        select sum(timepoint_events) as events, sum(on_time_events) as on_time,
+               round(100.0 * sum(on_time_events) / sum(timepoint_events), 2) as otp_pct,
+               round(100.0 * sum(early_events) / sum(timepoint_events), 2) as early_pct,
+               round(100.0 * sum(late_events) / sum(timepoint_events), 2) as late_pct
+        from metrics.otp_by_route""",
+    "OTP by scheduled hour": """
+        select scheduled_hour, timepoint_events, otp_pct, early_pct, late_pct, median_deviation_min
+        from metrics.otp_by_hour order by 1""",
+    "Routes with lowest and highest OTP (route and direction, 50+ events)": """
+        (select 'lowest' as rank_group, route_id, direction_id, timepoint_events, otp_pct, late_pct
+         from metrics.otp_by_route where timepoint_events >= 50 order by otp_pct limit 3)
+        union all
+        (select 'highest', route_id, direction_id, timepoint_events, otp_pct, late_pct
+         from metrics.otp_by_route where timepoint_events >= 50 order by otp_pct desc limit 3)""",
+    "Headways": """
+        select count(*) as pairs, count(*) filter (where is_frequent) as frequent_pairs,
+               count(*) filter (where is_bunched) as bunched,
+               round(100.0 * avg(is_bunched::int), 2) as bunched_pct,
+               round(100.0 * avg(is_bunched::int) filter (where is_frequent), 2) as bunched_pct_frequent,
+               round(100.0 * avg(is_headway_on_time::int) filter (where is_frequent), 2) as headway_on_time_pct_frequent,
+               count(*) filter (where actual_headway_s < 0) as swapped_order,
+               quantile_cont(headway_ratio, [0.1, 0.5, 0.9]) as ratio_p10_p50_p90
+        from metrics.headways""",
+    "Most bunched routes (route and direction, 30+ pairs)": """
+        select route_id, direction_id, headway_pairs, median_scheduled_headway_min, bunched_pct
+        from metrics.headway_by_route where headway_pairs >= 30 order by bunched_pct desc limit 5""",
+    "Scheduled trips inside the window that no vehicle was seen operating": """
+        select count(*) as scheduled, count(*) filter (where not was_observed) as unobserved,
+               round(100.0 * avg((not was_observed)::int), 1) as pct_unobserved,
+               count(*) filter (where not overlaps_feed_gap) as scheduled_no_gap,
+               count(*) filter (where not was_observed and not overlaps_feed_gap) as unobserved_no_gap,
+               round(100.0 * avg((not was_observed)::int) filter (where not overlaps_feed_gap), 1)
+                   as pct_unobserved_no_gap
+        from quality.dq_unobserved_trips""",
 }
 
 

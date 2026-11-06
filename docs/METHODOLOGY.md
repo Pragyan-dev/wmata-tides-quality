@@ -57,7 +57,7 @@ starts. Each stop projects onto the nearest segment of each shape that serves it
 
 - Stops sit a median of 5.0 m from their shape (90th percentile 10.0 m, 99th percentile
   16.5 m).
-- 1.18% of the 16,673 stop placements are out of order: the nearest shape point puts the
+- 1.19% of the 16,673 stop placements are out of order: the nearest shape point puts the
   stop before an earlier stop in the sequence. This happens where a shape loops or doubles
   back. These stops get no inferred time.
 
@@ -74,7 +74,7 @@ same vehicle's pings from up to 15 minutes before the trip's first ping and afte
 ping, if they sit within 300 m of the start or end of the shape. The reason is in section
 3.3: WMATA attaches the trip_id after the bus leaves the first stop and moves the bus to its
 next trip before it reaches the last stop. In the window this added 6,995 pings before
-trips and 25,910 pings after trips.
+trips and 25,863 pings after trips.
 
 **Snapping.** A 250 m grid limits the search to shape segments in the 3 x 3 cells around
 each ping.
@@ -82,11 +82,11 @@ each ping.
 - **Pass 1** takes the nearest segment within 100 m.
 - **Pass 2** handles shapes that pass the same place twice. Among segments within 30 m of the
   best one, it picks the one whose distance along the shape is closest to the median pass 1
-  result of the five pings centered on this one. Pass 2 changed the result for 3.08% of the
+  result of the five pings centered on this one. Pass 2 changed the result for 2.95% of the
   trips' own on-route pings.
 - **Progress** is the running maximum of distance along the shape within the trip. A bus
   cannot go backward on its route, so jitter backward is ignored. Progress was ahead of
-  the ping's own snapped position for 9.94% of own on-route pings.
+  the ping's own snapped position for 9.88% of own on-route pings.
 
 96.2% of the 219,347 pings tagged with a trip were within 100 m of their shape. The rest
 are off route: detours, buses still on the previous trip's path, or bad positions. They
@@ -95,7 +95,7 @@ do not feed the inference.
 **A finding about the feed.** The median tagged ping is 0.28 m from its shape. Raw GPS is
 not that accurate, so WMATA appears to publish positions already snapped to the route.
 This hides most GPS drift from any downstream user, including this pipeline. It also means
-this project cannot measure raw GPS error. The 90th percentile (15.3 m) and 99th percentile
+this project cannot measure raw GPS error. The 90th percentile (14.8 m) and 99th percentile
 (58.2 m) show that some pings are not snapped.
 
 **What it gets wrong.** The running maximum cannot undo a forward jump. If one bad ping
@@ -120,7 +120,7 @@ pings. The gap between them is stored as `interpolation_gap_s`.
   120 s or less, and 94.7% had 300 s or less. Most long gaps come from the 7-minute sleep
   gap.
 - Dwell (departure minus arrival) at intermediate stops had a median of 10 s, 10th
-  percentile 5 s, 90th percentile 40 s, and 99th percentile 100 s, over 73,080 visits.
+  percentile 5 s, 90th percentile 40 s, and 99th percentile 100 s, over 73,066 visits.
 
 **Layovers and terminals.** The first stop gets a departure time and no arrival time. The
 last stop gets an arrival time and no departure time. Neither gets a dwell, because the
@@ -167,10 +167,10 @@ ping past the arrival edge, and 9 could not be placed on the shape.
 
 | Reason | Visits | Share |
 |---|---|---|
-| Time inferred | 76,536 | 68.37% |
-| `bus_never_reached_stop` (no ping past the arrival edge) | 20,170 | 18.02% |
-| `bus_first_seen_past_stop` (first ping already past the stop) | 14,235 | 12.72% |
-| `stop_not_placed_on_shape` (out-of-order stop, section 3.1) | 933 | 0.83% |
+| Time inferred | 76,520 | 68.36% |
+| `bus_never_reached_stop` (no ping past the arrival edge) | 20,181 | 18.03% |
+| `bus_first_seen_past_stop` (first ping already past the stop) | 14,226 | 12.71% |
+| `stop_not_placed_on_shape` (out-of-order stop, section 3.1) | 947 | 0.85% |
 | `other` | 66 | 0.06% |
 
 Total: 111,940 scheduled stop visits on 2,546 performed trips. Most of the first two
@@ -180,13 +180,13 @@ them `Skipped` instead of `Missing`.
 
 ### 3.5 Consistency check
 
-WMATA reports `current_status = STOPPED_AT` with a stop sequence on many pings. For 69,823
+WMATA reports `current_status = STOPPED_AT` with a stop sequence on many pings. For 69,818
 such pings that match a stop with both an inferred arrival and departure:
 
 - 73.0% fall inside the inferred arrival-to-departure window
-- 97.2% fall within 30 s of it
+- 97.3% fall within 30 s of it
 - 99.0% fall within 60 s of it
-- 16.7% are before the inferred arrival, 10.4% are after the inferred departure
+- 16.8% are before the inferred arrival, 10.2% are after the inferred departure
 
 This is a consistency check, not ground truth. The same pings feed the inference, and
 WMATA's own STOPPED_AT logic is not documented. A real accuracy test needs agency AVL
@@ -210,9 +210,10 @@ a bad enum value, an impossible date, and a duplicate key, and reported all thre
 - `stop_visits.schedule_relationship` is `Scheduled` when a time was inferred, `Skipped`
   when no time was inferred and TripUpdates marked the stop SKIPPED, and `Missing`
   otherwise.
-- `trips_performed` only has trips a vehicle was seen operating. Scheduled trips with no
-  vehicle are not listed, so missed trips are not measured. TIDES requires `vehicle_id` on
-  every performed trip, and a missed trip has none.
+- `trips_performed` only has trips a vehicle was seen operating. TIDES requires
+  `vehicle_id` on every performed trip, and a missed trip has none. Scheduled trips no
+  vehicle was seen operating are counted separately in the `dq_unobserved_trips` quality
+  model.
 - TIDES fields the public feed cannot supply are written as empty columns: device_id,
   pattern_id, gps_quality, odometer, schedule and headway deviation, operator_id,
   passenger counts, door events, ramp and lift data, and fare data.

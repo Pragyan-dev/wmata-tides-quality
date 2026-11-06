@@ -110,7 +110,9 @@ close_candidates as (
 pass1 as (
     select trip_ping_key, along_m as along_pass1_m
     from close_candidates
-    qualify row_number() over (partition by trip_ping_key order by snap_m) = 1
+    -- Ties are real where a shape runs both ways along one street. Prefer the earlier
+    -- point on the shape so the result is the same on every run.
+    qualify row_number() over (partition by trip_ping_key order by snap_m, along_m) = 1
 ),
 
 -- Drop borrowed pings that are not near the right end of the shape.
@@ -144,7 +146,7 @@ pass2 as (
     where c.snap_m <= c.best_snap_m + 30
     qualify row_number() over (
         partition by c.trip_ping_key
-        order by abs(c.along_m - n.neighbor_median_m), c.snap_m
+        order by abs(c.along_m - n.neighbor_median_m), c.snap_m, c.along_m
     ) = 1
 )
 

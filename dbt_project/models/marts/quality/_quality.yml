@@ -17,6 +17,15 @@ models:
           arguments:
             columns: [service_date, trip_id_performed]
 
+  - name: dq_unobserved_trips
+    description: >
+      Scheduled trips fully inside the collected window, and whether any vehicle was seen
+      operating them. Unobserved trips are an upper bound on missed trips.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id]
+
   - name: data_quality
     description: >
       Every check summarized by service date and route: rows checked, rows flagged, share
