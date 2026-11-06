@@ -19,9 +19,86 @@ models:
         description: Seconds between the vehicle timestamp and the fetch that first saw it.
       - name: times_seen
         description: Number of fetches that carried this exact ping.
+      - name: vehicle_id
+        tests: [not_null]
+      - name: current_status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['INCOMING_AT', 'STOPPED_AT', 'IN_TRANSIT_TO']
+      - name: trip_schedule_relationship
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['SCHEDULED', 'ADDED', 'UNSCHEDULED', 'CANCELED', 'DUPLICATED']
+      - name: occupancy_status
+        description: WMATA defines MANY_SEATS under 25%, FEW_SEATS 25-49%, FULL 50% or more.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['EMPTY', 'MANY_SEATS_AVAILABLE', 'FEW_SEATS_AVAILABLE',
+                         'STANDING_ROOM_ONLY', 'CRUSHED_STANDING_ROOM_ONLY', 'FULL',
+                         'NOT_ACCEPTING_PASSENGERS', 'NO_DATA_AVAILABLE', 'NOT_BOARDABLE']
+      - name: latitude
+        tests: [not_null]
+      - name: longitude
+        tests: [not_null]
+      # Referential integrity to static GTFS. Severity warn: a mismatch is a data
+      # quality finding (counted in data_quality), not a pipeline failure.
+      - name: trip_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__trips')
+                field: trip_id
+              config:
+                severity: warn
+      - name: route_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__routes')
+                field: route_id
+              config:
+                severity: warn
+      - name: stop_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__stops')
+                field: stop_id
+              config:
+                severity: warn
 
   - name: stg_rt__trip_updates
     description: Last reported state for each trip and stop in TripUpdates.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [trip_id, service_date, stop_sequence]
+    columns:
+      - name: trip_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__trips')
+                field: trip_id
+              config:
+                severity: warn
+      - name: last_stop_schedule_relationship
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['SCHEDULED', 'SKIPPED', 'NO_DATA']
+
+  - name: stg_collector__fetches
+    description: One row per fetch attempt from the collector log, including failures.
+    columns:
+      - name: feed
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['vehicle_positions', 'trip_updates']
 
   - name: stg_gtfs__feed_versions
     description: Static GTFS version downloaded on each collection date.

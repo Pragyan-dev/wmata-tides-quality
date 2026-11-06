@@ -31,6 +31,30 @@ vars:
   max_snap_distance_m: 100   # pings farther than this from the trip's shape are not used
   stop_zone_m: 30            # a bus arrives at stop_dist - 30 m and departs at stop_dist + 30 m
   smoothing_window_pings: 2  # pass 2 snapping looks at this many pings before and after
+  terminal_window_s: 900     # also use the vehicle's pings up to 15 min before/after the trip...
+  terminal_zone_m: 300       # ...when they sit within 300 m of the shape's start or end
+
+  # Data quality checks (docs/DATA_QUALITY.md).
+  dq_service_area_buffer_m: 2000  # service area = bounding box of all stops plus this buffer
+  dq_max_speed_mps: 35            # about 78 mph; faster implied speed between pings is impossible
+  dq_min_jump_m: 200              # ignore implied-speed spikes under this distance (timestamp rounding)
+  dq_stale_ping_age_s: 120        # ping already this old when first fetched, or repeated this long
+  dq_coverage_gap_s: 120          # gap between pings on a trip that counts as a coverage gap
+  dq_feed_gap_s: 45               # time between fetches that counts as missed polls
+  dq_min_pings_per_trip: 10       # fewer on-route pings than this: too few to infer arrivals
+
+  # On-time performance. Default is WMATA's published bus definition: a timepoint is on
+  # time from 2 minutes early to 7 minutes late; the last timepoint is on time if no more
+  # than 7 minutes late (Metro Service Excellence Report definitions, July 2026; Metrobus
+  # Service Guidelines). See docs/DASHBOARD_SPEC.md for sources.
+  otp_early_s: 120
+  otp_late_s: 420
+
+  # Quality filter levels for the sensitivity analysis.
+  moderate_max_gap_s: 120
+  moderate_max_off_route_pct: 20
+  strict_max_gap_s: 60
+  strict_max_off_route_pct: 5
 
 models:
   wmata_tides:
@@ -42,3 +66,7 @@ models:
     marts:
       tides:
         +schema: tides
+      quality:
+        +schema: quality
+      metrics:
+        +schema: metrics

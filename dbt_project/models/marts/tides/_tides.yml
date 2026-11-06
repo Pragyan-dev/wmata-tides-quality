@@ -45,6 +45,14 @@ models:
         tests: [not_null]
       - name: vehicle_id
         tests: [not_null]
+      - name: route_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__routes')
+                field: route_id
+              config:
+                severity: warn
       - name: direction_id
         tests:
           - accepted_values:
@@ -77,6 +85,13 @@ models:
                 field: trip_id_performed
       - name: trip_stop_sequence
         tests: [not_null]
+      - name: stop_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__stops')
+                field: stop_id
       - name: schedule_relationship
         tests:
           - accepted_values:

@@ -10,6 +10,14 @@
 -- only in part), or the stop is past the farthest point the bus reached.
 -- interpolation_gap_s records how far apart the bracketing pings were, so quality
 -- filters can drop visits based on long gaps.
+--
+-- First stop fallback: at many terminals the bus lays over past the first stop's
+-- position, so its first ping is already past the departure edge. When the shape
+-- method finds no first-stop departure, use the feed's stop sequence instead: the
+-- midpoint between the last ping that still reports the first stop (or earlier) and
+-- the first ping that reports a later stop. There is no matching fallback for the last
+-- stop: WMATA switches the bus to its next trip before it reports STOPPED_AT the last
+-- stop. arrival_method and departure_method record which method produced each time.
 
 with observed_trips as (
     select
@@ -19,6 +27,7 @@ with observed_trips as (
     from {{ ref('int_pings_snapped') }}
     where is_on_route
     group by service_date, trip_id, vehicle_id, feed_version, shape_id
+    having count(*) filter (where ping_source = 'own_trip') > 0
 ),
 
 scheduled as (
@@ -100,6 +109,38 @@ depart_after as (
         and e.vehicle_id = p.vehicle_id and e.depart_at_m < p.progress_key
 ),
 
+own_pings as (
+    select
+        p.service_date, p.trip_id, p.vehicle_id, p.event_epoch, p.current_stop_sequence,
+        fs.first_stop_sequence
+    from {{ ref('stg_rt__vehicle_positions') }} p
+    join (
+        select service_date, trip_id, vehicle_id, min(stop_sequence) as first_stop_sequence
+        from scheduled
+        group by service_date, trip_id, vehicle_id
+    ) fs using (service_date, trip_id, vehicle_id)
+),
+
+first_stop_feed as (
+    select
+        service_date, trip_id, vehicle_id,
+        max(event_epoch) filter (where current_stop_sequence <= first_stop_sequence)
+            as last_at_first_t,
+        min(event_epoch) filter (where current_stop_sequence > first_stop_sequence)
+            as first_past_t
+    from own_pings
+    group by service_date, trip_id, vehicle_id
+),
+
+first_stop_fallback as (
+    select
+        service_date, trip_id, vehicle_id,
+        (last_at_first_t + first_past_t) / 2.0 as departure_epoch,
+        first_past_t - last_at_first_t as departure_gap_s
+    from first_stop_feed
+    where last_at_first_t < first_past_t
+),
+
 interpolated as (
     select
         service_date, trip_id, vehicle_id, stop_sequence,
@@ -126,12 +167,20 @@ select
     {{ gtfs_scheduled_ts('s.service_date', 's.arrival_seconds') }} as scheduled_arrival_ts,
     {{ gtfs_scheduled_ts('s.service_date', 's.departure_seconds') }} as scheduled_departure_ts,
     to_timestamp(i.arrival_epoch) as actual_arrival_ts,
-    to_timestamp(i.departure_epoch) as actual_departure_ts,
-    i.arrival_gap_s,
-    i.departure_gap_s,
-    greatest(i.arrival_gap_s, i.departure_gap_s) as interpolation_gap_s,
+    case when i.arrival_epoch is not null then 'shape' end as arrival_method,
+    to_timestamp(coalesce(i.departure_epoch, f.departure_epoch)) as actual_departure_ts,
     case
-        when i.arrival_epoch is not null or i.departure_epoch is not null then null
+        when i.departure_epoch is not null then 'shape'
+        when f.departure_epoch is not null then 'feed_stop_sequence'
+    end as departure_method,
+    i.arrival_gap_s,
+    coalesce(i.departure_gap_s, f.departure_gap_s) as departure_gap_s,
+    greatest(i.arrival_gap_s, coalesce(i.departure_gap_s, f.departure_gap_s))
+        as interpolation_gap_s,
+    case
+        when (not s.is_first_stop and i.arrival_epoch is not null)
+          or (not s.is_last_stop and coalesce(i.departure_epoch, f.departure_epoch) is not null)
+            then null
         when s.is_out_of_order then 'stop_not_placed_on_shape'
         when s.stop_dist_m + {{ var('stop_zone_m') }} <= s.first_progress_m then 'bus_first_seen_past_stop'
         when s.stop_dist_m - {{ var('stop_zone_m') }} >= s.last_progress_m then 'bus_never_reached_stop'
@@ -139,3 +188,6 @@ select
     end as no_visit_reason
 from scheduled s
 left join interpolated i using (service_date, trip_id, vehicle_id, stop_sequence)
+left join first_stop_fallback f
+    on s.is_first_stop
+    and f.service_date = s.service_date and f.trip_id = s.trip_id and f.vehicle_id = s.vehicle_id

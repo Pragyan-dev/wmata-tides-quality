@@ -32,3 +32,7 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# Long SQL strings read better unwrapped.
+"scripts/report.py" = ["E501"]

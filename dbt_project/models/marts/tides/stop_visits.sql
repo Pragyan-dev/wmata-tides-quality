@@ -20,10 +20,10 @@ select
     v.stop_sequence as trip_stop_sequence,
     v.stop_sequence as scheduled_stop_sequence,
     v.vehicle_id,
-    -- Dwell only where both times exist. The first stop has no meaningful arrival
-    -- (the bus may sit there on layover), so it gets no dwell.
+    -- Dwell only where both times exist. At the first stop the bus may sit on layover
+    -- before the trip, and at the last stop after it, so neither gets a dwell.
     case
-        when not v.is_first_stop
+        when not v.is_first_stop and not v.is_last_stop
             then cast(round(epoch(v.actual_departure_ts) - epoch(v.actual_arrival_ts)) as integer)
     end as dwell,
     v.stop_id,
@@ -31,9 +31,10 @@ select
     v.scheduled_arrival_ts as schedule_arrival_time,
     v.scheduled_departure_ts as schedule_departure_time,
     case when not v.is_first_stop then v.actual_arrival_ts end as actual_arrival_time,
-    v.actual_departure_ts as actual_departure_time,
+    case when not v.is_last_stop then v.actual_departure_ts end as actual_departure_time,
     case
-        when v.actual_arrival_ts is not null or v.actual_departure_ts is not null then 'Scheduled'
+        when (not v.is_first_stop and v.actual_arrival_ts is not null)
+          or (not v.is_last_stop and v.actual_departure_ts is not null) then 'Scheduled'
         when coalesce(s.ever_skipped, false) then 'Skipped'
         else 'Missing'
     end as schedule_relationship,
@@ -42,6 +43,8 @@ select
     v.is_last_stop,
     v.is_out_of_order,
     v.interpolation_gap_s,
+    v.arrival_method,
+    v.departure_method,
     v.no_visit_reason
 from visits v
 left join skipped s using (service_date, trip_id, stop_sequence)

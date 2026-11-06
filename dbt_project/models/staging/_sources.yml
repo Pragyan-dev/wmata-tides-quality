@@ -35,3 +35,11 @@ sources:
         meta:
           external_location: >-
             read_csv('{{ var("data_dir") }}/static/feed_versions.csv', header = true, all_varchar = true)
+
+  - name: collector
+    description: The collector's own log, one line per fetch, including failed and empty fetches.
+    meta:
+      external_location: >-
+        read_csv('{{ var("data_dir") }}/logs/fetches.csv', header = true, all_varchar = true)
+    tables:
+      - name: fetches

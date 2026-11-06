@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: dq_ping_checks
+    description: One row per distinct ping with a flag for each ping-level check.
+    columns:
+      - name: location_ping_id
+        tests: [unique, not_null]
+
+  - name: dq_feed_checks
+    description: One row per fetch attempt with feed-level checks (failed, empty, stale, missed polls).
+
+  - name: dq_trip_checks
+    description: One row per performed trip with coverage, completeness, and window flags.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id_performed]
+
+  - name: data_quality
+    description: >
+      Every check summarized by service date and route: rows checked, rows flagged, share
+      flagged. Feed checks use route_id = 'ALL'. Pings with no trip use route_id = '(no trip)'.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, route_id, check_level, check_name]
+    columns:
+      - name: check_level
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['ping', 'trip', 'stop_visit', 'feed']
+
+  - name: dq_otp_sensitivity
+    description: OTP at the loose, moderate, and strict quality filter levels.
+    columns:
+      - name: filter_level
+        tests: [unique, not_null]
+
+  - name: dq_otp_sensitivity_by_route
+    description: OTP per route at each filter level, with strict minus loose.
+    columns:
+      - name: route_id
+        tests: [unique]
+
+  - name: dq_otp_filter_effects
+    description: OTP after applying one quality filter at a time.

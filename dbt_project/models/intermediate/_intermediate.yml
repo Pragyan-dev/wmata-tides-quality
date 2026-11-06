@@ -27,11 +27,20 @@ models:
 
   - name: int_pings_snapped
     description: >
-      Pings on a trip, snapped to the trip's shape in two passes. progress_m is the running
-      maximum of along_m. Pings farther than max_snap_distance_m from the shape are off route.
+      One row per (trip, ping): the trip's own pings plus the vehicle's pings just before and
+      after the trip near the shape's ends (ping_source). Snapped to the trip's shape in two
+      passes. progress_m is the running maximum of along_m. Own-trip pings farther than
+      max_snap_distance_m from the shape are off route.
+    tests:
+      - unique_combination:
+          arguments:
+            columns: [service_date, trip_id, vehicle_id, location_ping_id]
     columns:
-      - name: location_ping_id
-        tests: [unique, not_null]
+      - name: ping_source
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['own_trip', 'before_trip', 'after_trip']
 
   - name: int_stop_visits_inferred
     description: >
