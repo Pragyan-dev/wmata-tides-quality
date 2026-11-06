@@ -19,7 +19,7 @@ not WMATA bus service in general.
 
 ## 1. Checks
 
-dbt runs 108 models and tests on every build. The tests cover:
+dbt runs 110 models and tests on every build. The tests cover:
 
 - **Not null and uniqueness** on every primary key, including the TIDES composite keys.
 - **Accepted values** on every enum: GTFS-RT `current_status`, trip and stop

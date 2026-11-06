@@ -36,3 +36,4 @@ testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]
 # Long SQL strings read better unwrapped.
 "scripts/report.py" = ["E501"]
+"scripts/make_sample.py" = ["E501"]

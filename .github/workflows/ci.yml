@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      WMATA_DUCKDB_PATH: ${{ runner.temp }}/ci.duckdb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]" -c requirements-lock.txt
+
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Unit tests
+        run: pytest -q
+
+      # The committed sample (data/sample) is one hour of real WMATA data for three
+      # routes. Three referential integrity tests warn on it by design; see
+      # scripts/make_sample.py.
+      - name: dbt build on the sample
+        working-directory: dbt_project
+        run: dbt build --profiles-dir . --vars '{data_dir: ../data/sample}'
+
+      - name: Validate TIDES output against the v1.0 schemas
+        run: python scripts/export_tides.py --db "$WMATA_DUCKDB_PATH" --out "${{ runner.temp }}/tides"
+
+      - name: Build dbt docs
+        working-directory: dbt_project
+        run: dbt docs generate --profiles-dir . --vars '{data_dir: ../data/sample}' --static
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: dbt_project/target/static_index.html
