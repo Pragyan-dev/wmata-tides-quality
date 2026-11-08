@@ -4,97 +4,151 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Explore how data quality affects measured on-time performance for WMATA buses.">
-  <meta name="theme-color" content="#122e3d">
-  <title>WMATA Bus Reliability | Transit Field Notes</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#172b42">
+  <title>WMATA Bus Reliability Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=2">
   <script defer src="snapshot.js"></script>
   <script defer src="basemap.js"></script>
-  <script defer src="dashboard.js"></script>
+  <script defer src="dashboard.js?v=2"></script>
 </head>
 <body>
   <a class="skip" href="#dashboard">Skip to dashboard</a>
   <header class="top">
     <div class="wrap masthead">
-      <a class="brand" href="#" aria-label="Transit Field Notes home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Transit Field Notes</a>
-      <a class="source-link" href="https://github.com/Pragyan-dev/wmata-tides-quality">Project source <span aria-hidden="true">↗</span></a>
+      <a class="brand" href="#" aria-label="WMATA Bus Reliability home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="3" width="16" height="16" rx="3"/><path d="M4 12h16M7 19v2m10-2v2M8 15.5h.5m7 0h.5M9 6h6"/>
+        </svg>
+        WMATA Bus Reliability
+      </a>
+      <a class="source-link" href="https://github.com/Pragyan-dev/wmata-tides-quality">Project on GitHub <span aria-hidden="true">↗</span></a>
     </div>
   </header>
-  <main class="wrap">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow"><span class="signal"></span> Washington region · Metrobus</p>
-        <h1>Can we trust<br>the bus feed?</h1>
-        <p>Explore how the quality of public vehicle observations changes the on-time performance we measure.</p>
-        <span class="stamp">NOV 06, 2026 <span>·</span> 11:00–14:00 ET <span>·</span> FIXED SNAPSHOT</span>
+
+  <div class="intro">
+    <div class="wrap intro-inner">
+      <div>
+        <p class="overline">Washington, DC region · Independent analysis</p>
+        <h1>Metrobus performance</h1>
+        <p class="intro-note">How does the quality of the public bus feed affect measured on-time performance?</p>
       </div>
-      <svg class="schematic" viewBox="0 0 450 270" role="img" aria-label="Analysis pipeline from public pings to TIDES events and reliability measures">
-        <defs><pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" fill="none" stroke="#315364" stroke-width="1"/></pattern></defs>
-        <rect width="450" height="270" fill="#122e3d"/><rect width="450" height="270" fill="url(#grid)"/>
-        <text x="24" y="32" class="diagram-kicker">FIG. 01 / ANALYSIS PIPELINE</text>
-        <path d="M-10 198H100Q122 198 138 182L202 118Q218 102 240 102H460" fill="none" stroke="#59c5b6" stroke-width="6"/>
-        <path d="M-10 77H104Q126 77 142 93L206 157Q222 173 244 173H460" fill="none" stroke="#e7ae63" stroke-width="5"/>
-        <path d="M-10 226H236Q258 226 274 210L358 126Q374 110 396 110H460" fill="none" stroke="#ea897c" stroke-width="4"/>
-        <g fill="#122e3d" stroke-width="4"><circle cx="70" cy="198" r="10" stroke="#59c5b6"/><circle cx="174" cy="146" r="11" stroke="#f4f4ec"/><circle cx="304" cy="102" r="10" stroke="#59c5b6"/><circle cx="373" cy="173" r="8" stroke="#e7ae63"/><circle cx="244" cy="225" r="8" stroke="#ea897c"/></g>
-        <g class="diagram-text"><text x="30" y="179">PUBLIC PINGS</text><text x="148" y="127">TIDES</text><text x="268" y="80">TIMEPOINTS</text><text x="329" y="153">QUALITY</text><text x="221" y="253">HEADWAYS</text></g>
-      </svg>
-    </section>
-    <nav class="section-nav" aria-label="Dashboard sections">
-      <a href="#dashboard">Performance</a><a href="#stops">Stops</a><a href="#headways">Headways</a><a href="#quality">Data quality</a><a href="#method">Method</a>
+      <div class="window">
+        <span class="overline">Observation window</span>
+        <strong><time datetime="2026-11-06">November 6, 2026</time></strong>
+        <span>11:00–14:00 ET · Fixed snapshot</span>
+      </div>
+    </div>
+    <nav class="wrap section-nav" aria-label="Dashboard sections">
+      <a href="#dashboard">Overview</a>
+      <a href="#stops">Stop map</a>
+      <a href="#schedule">Schedule adherence</a>
+      <a href="#headways">Headways</a>
+      <a href="#quality">Data quality</a>
+      <a href="#method">Methodology</a>
     </nav>
-    <section id="dashboard" aria-labelledby="performance-title">
-      <div class="section-head">
-        <div><p class="eyebrow">01 / Schedule adherence</p><h2 id="performance-title">Performance</h2></div>
-        <div class="controls">
-          <label for="route">Route <select id="route"><option value="">All routes</option></select></label>
-          <fieldset><legend>Quality filter</legend>
-            <label><input type="radio" name="level" value="0">Loose</label>
-            <label><input type="radio" name="level" value="1" checked>Moderate</label>
-            <label><input type="radio" name="level" value="2">Strict</label>
-          </fieldset>
+  </div>
+
+  <main class="wrap" id="dashboard">
+    <div class="controls" aria-label="Dashboard filters" role="group">
+      <label for="route">Bus route <select id="route"><option value="">All routes</option></select></label>
+      <fieldset>
+        <legend>Quality filter</legend>
+        <label><input type="radio" name="level" value="0">Loose</label>
+        <label><input type="radio" name="level" value="1" checked>Moderate</label>
+        <label><input type="radio" name="level" value="2">Strict</label>
+      </fieldset>
+    </div>
+
+    <div id="kpis" class="kpis" aria-label="Schedule performance summary" role="group" aria-live="polite"></div>
+
+    <div class="workbench">
+      <section id="stops" class="panel map-panel" aria-labelledby="stops-title">
+        <div class="panel-heading">
+          <div><h2 id="stops-title">Timepoint stop map</h2><p>Select a stop to see its on-time rate. Larger dots have more eligible observations.</p></div>
+          <span class="map-count" id="map-count"></span>
         </div>
+        <div id="stop-map"></div>
+        <div class="map-footer">
+          <div class="legend"><span class="on-time">At least 75% on time</span><span class="late">Below 75% on time</span></div>
+          <p class="map-credit">Basemap <a href="https://www.census.gov/data/developers/data-sets/TIGERweb-map-service.html">U.S. Census TIGERweb</a></p>
+        </div>
+      </section>
+
+      <div class="inspector">
+        <section id="quality" class="panel quality-panel" aria-labelledby="quality-title">
+          <div class="panel-heading">
+            <div><h2 id="quality-title">Impact of quality filters</h2><p>Eligible timepoints and on-time rates for each filter.</p></div>
+          </div>
+          <div id="sensitivity"></div>
+          <p class="callout" id="quality-insight" aria-live="polite"></p>
+          <details>
+            <summary>How the filters work</summary>
+            <p>Loose keeps every inferred event. Moderate requires gaps of at most 120 seconds, at most 20% off-route pings, and at least 10 on-route pings. Strict also requires complete trips inside the window, shorter gaps, shape-based times, and no flagged speed, stale ping, or coverage issues.</p>
+          </details>
+          <a class="panel-link" href="#quality-checks">View data quality checks ↓</a>
+        </section>
+
+        <section class="panel stop-panel" aria-labelledby="stop-detail-title">
+          <div class="panel-heading"><div><h2 id="stop-detail-title">Stop details</h2><p id="stop-detail" aria-live="polite">Choose a stop on the map or from the list.</p></div></div>
+          <label class="stop-control" for="stop">Timepoint stop <select id="stop"><option value="">Choose a stop</option></select></label>
+          <details>
+            <summary>Stops with the most observations</summary>
+            <div id="stop-table"></div>
+          </details>
+        </section>
       </div>
-      <div id="kpis" class="kpis" aria-live="polite"></div>
-      <div class="panels performance-panels">
-        <article class="panel"><div class="panel-heading"><h3>On time by scheduled hour</h3><p>Hours at the collection boundaries have fewer observations.</p></div><div id="hour-chart"></div></article>
-        <article class="panel"><div class="panel-heading"><h3>Schedule outcomes by route</h3><p>Up to eight routes with the most eligible events.</p></div><div id="route-chart"></div><div class="legend"><span class="on-time">On time</span><span class="early">Early</span><span class="late">Late</span></div></article>
-      </div>
-    </section>
-    <section id="stops" aria-labelledby="stops-title">
-      <div class="section-head"><div><p class="eyebrow">02 / Geography</p><h2 id="stops-title">Timepoint stops</h2></div><p class="section-note">The route and quality filters apply here.</p></div>
-      <div class="panels stop-panels">
+    </div>
+
+    <section id="schedule" class="report-section" aria-labelledby="performance-title">
+      <div class="section-head"><h2 id="performance-title">Schedule adherence</h2><p>Measured at scheduled timepoints.</p></div>
+      <div class="panels">
         <article class="panel">
-          <div class="panel-heading"><h3>Observed timepoint stops</h3><p>Dot size shows eligible events. Select a stop for details.</p></div>
-          <div id="stop-map"></div>
-          <div class="legend"><span class="on-time">At least 75% OTP</span><span class="late">Below 75% OTP</span></div>
-          <p class="map-credit">Stops from WMATA GTFS. Basemap from <a href="https://www.census.gov/data/developers/data-sets/TIGERweb-map-service.html">U.S. Census Bureau TIGERweb</a>.</p>
+          <div class="panel-heading"><div><h3>On time by scheduled hour</h3><p>Hours at the collection boundaries have fewer observations.</p></div></div>
+          <div id="hour-chart"></div>
         </article>
-        <article class="panel"><div class="panel-heading"><h3 id="stop-detail-title">Stop details</h3><p id="stop-detail" aria-live="polite">Choose a stop on the map or from the list.</p></div><label class="stop-control" for="stop">Timepoint stop <select id="stop"><option value="">Choose a stop</option></select></label><div id="stop-table"></div></article>
+        <article class="panel">
+          <div class="panel-heading"><div><h3>Schedule outcomes by route</h3><p>Up to eight routes with the most eligible observations.</p></div></div>
+          <div id="route-chart"></div>
+          <div class="legend"><span class="on-time">On time</span><span class="early">Early</span><span class="late">Late</span></div>
+        </article>
       </div>
     </section>
-    <section id="headways" aria-labelledby="headway-title">
-      <div class="section-head"><div><p class="eyebrow">03 / Service spacing</p><h2 id="headway-title">Headways &amp; bunching</h2></div><p class="section-note">Uses Moderate quality pairs. The route filter applies.</p></div>
+
+    <section id="headways" class="report-section" aria-labelledby="headway-title">
+      <div class="section-head"><h2 id="headway-title">Headways and bunching</h2><p>Uses Moderate quality pairs. The route filter applies.</p></div>
       <div id="headway-kpis" class="kpis headway-kpis"></div>
-      <article class="panel"><div class="panel-heading"><h3>Bunching and sample size</h3><p>Each point is a route. Hover or focus a point to see the pair count and bunching rate.</p></div><div id="scatter"></div><p id="scatter-detail" class="chart-detail" aria-live="polite"></p></article>
+      <article class="panel">
+        <div class="panel-heading"><div><h3>Bunching by route and sample size</h3><p>Hover over or focus a point to see its route, pair count, and bunching rate.</p></div></div>
+        <div id="scatter"></div>
+        <p id="scatter-detail" class="chart-detail" aria-live="polite"></p>
+      </article>
     </section>
-    <section id="quality" aria-labelledby="quality-title">
-      <div class="section-head"><div><p class="eyebrow">04 / Measurement sensitivity</p><h2 id="quality-title">Data quality</h2></div><p class="section-note">Compare all three quality levels for the selected route or network.</p></div>
-      <div class="panels quality-panels">
-        <article class="panel"><div class="panel-heading"><h3>How much data survives?</h3><p>Bar length shows the share of Loose observations retained. OTP uses the events retained at each level.</p></div><div id="sensitivity"></div><p class="callout" id="quality-insight"></p><details><summary>What each filter keeps</summary><p>Loose keeps every inferred event. Moderate requires gaps of at most 120 seconds, at most 20% off-route pings, and at least 10 on-route pings. Strict also requires complete trips inside the window, shorter gaps, shape-based times, and no flagged speed, stale ping, or coverage issues.</p></details></article>
-        <article class="panel"><div class="panel-heading"><h3>Most frequently flagged checks</h3><p>Counts and rates use the denominator for each check.</p></div><div id="check-table"></div></article>
+
+    <section id="quality-checks" class="report-section" aria-labelledby="checks-title">
+      <div class="section-head"><h2 id="checks-title">Data quality checks</h2><p>Counts and rates use the denominator for each check.</p></div>
+      <div class="panel checks-panel">
+        <div class="panel-heading"><div><h3>Most frequently flagged checks</h3><p>Checks are ranked by the share of observations flagged.</p></div></div>
+        <div id="check-table"></div>
       </div>
     </section>
-    <section id="method" class="method" aria-labelledby="method-title">
-      <p class="eyebrow">05 / How it was measured</p><h2 id="method-title">Method &amp; limits</h2>
+
+    <section id="method" class="report-section method" aria-labelledby="method-title">
+      <div class="section-head"><h2 id="method-title">Methodology and limitations</h2></div>
       <div class="method-grid">
         <div><h3>From pings to events</h3><p>The pipeline converts WMATA GTFS-Realtime observations to TIDES tables. It projects vehicle locations onto route shapes and interpolates stop events between pings.</p></div>
         <div><h3>Schedule adherence</h3><p>Timepoint departures count as on time from 2 minutes early to 7 minutes late. The last timepoint uses arrival, with a 7-minute late bound. Coverage is the share of represented timepoints with an inferred event.</p></div>
         <div><h3>What the feed misses</h3><p>A public real-time feed is a stand-in for an agency's internal AVL data, which is what TIDES is designed for. Missing pings, GPS drift and the collection boundaries can affect the estimates.</p></div>
         <div><h3>Spacing between buses</h3><p>Bunching means a gap under 2 minutes between consecutive scheduled buses at the same route, direction and timepoint, including overtaking. Frequent service has scheduled gaps of 12 minutes or less.</p></div>
       </div>
-      <div class="method-links"><a href="https://github.com/Pragyan-dev/wmata-tides-quality/blob/main/docs/METHODOLOGY.md">Full methodology ↗</a><a href="https://github.com/Pragyan-dev/wmata-tides-quality/blob/main/docs/DATA_QUALITY.md">Quality rules ↗</a><a href="https://github.com/TIDES-transit/TIDES">TIDES schemas ↗</a><a href="https://github.com/evansiroky/gtfs-rt-to-tides">Prior work ↗</a></div>
+      <div class="method-links">
+        <a href="https://github.com/Pragyan-dev/wmata-tides-quality/blob/main/docs/METHODOLOGY.md">Full methodology ↗</a>
+        <a href="https://github.com/Pragyan-dev/wmata-tides-quality/blob/main/docs/DATA_QUALITY.md">Quality rules ↗</a>
+        <a href="https://github.com/TIDES-transit/TIDES">TIDES schemas ↗</a>
+        <a href="https://github.com/evansiroky/gtfs-rt-to-tides">Prior work ↗</a>
+      </div>
     </section>
     <noscript>This dashboard needs JavaScript to display the snapshot and filters.</noscript>
   </main>
-  <footer class="wrap footer"><span>Transit Field Notes / WMATA Bus Reliability</span><span>Source: WMATA public GTFS and GTFS-Realtime</span></footer>
+  <footer class="wrap footer"><span>WMATA Bus Reliability · Independent analysis</span><span>Data from WMATA public GTFS and GTFS-Realtime</span></footer>
 </body>
 </html>

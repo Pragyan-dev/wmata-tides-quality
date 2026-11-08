@@ -2,9 +2,9 @@
 
 const byId = id => document.getElementById(id);
 const labels = ["Loose", "Moderate", "Strict"];
-const palette = ["#087e73", "#db9b45", "#c45b4e"];
 const integer = new Intl.NumberFormat("en-US");
 const count = value => integer.format(value);
+const events = value => count(value) + (value === 1 ? " event" : " events");
 const rate = (part, whole) => whole ? part / whole : null;
 const percent = (value, digits = 1) => value === null ? "—" : (100 * value).toFixed(digits) + "%";
 const escape = value => String(value).replace(/[&<>"']/g, character => ({
@@ -66,29 +66,31 @@ function renderHours(records, level) {
     const detail = hour + ':00 ET · ' + percent(otp) + ' OTP · ' + count(value.eligible) + ' eligible events';
     content += '<g role="img" aria-label="' + escape(detail) + '"><title>' + escape(detail) +
       '</title><rect x="' + (x - step * .27) + '" y="' + y + '" width="' + step * .54 +
-      '" height="' + height + '" fill="#087e73" rx="3"/><text class="value" x="' + x +
+      '" height="' + height + '" fill="var(--blue)" rx="2"/><text class="value" x="' + x +
       '" y="' + (y - 7) + '" text-anchor="middle">' + percent(otp) + '</text><text x="' +
-      x + '" y="187" text-anchor="middle">' + hour + ':00</text></g>';
+      x + '" y="187" text-anchor="middle">' + hour + ':00</text><text x="' +
+      x + '" y="204" text-anchor="middle">n=' + count(value.eligible) + '</text></g>';
   });
-  byId("hour-chart").innerHTML = chart(width, 197, "On-time performance by scheduled hour in Eastern time", content);
+  byId("hour-chart").innerHTML = chart(width, 213, "On-time performance by scheduled hour in Eastern time", content);
 }
 
 function renderRoutes(records, level) {
   const groups = [...aggregate(records, level, 0)]
     .filter(([, item]) => item.eligible)
     .sort((a, b) => b[1].eligible - a[1].eligible).slice(0, 8);
-  byId("route-chart").innerHTML = groups.map(([id, value]) => {
+  const header = '<div class="bar-row bar-heading"><span>Route</span><span>Outcome mix</span><span>On time</span><span>Eligible</span></div>';
+  byId("route-chart").innerHTML = groups.length ? header + groups.map(([id, value]) => {
     const parts = [value.onTime, value.early, value.eligible - value.onTime - value.early];
     const breakdown = parts.map(part => percent(rate(part, value.eligible)));
     const description = breakdown[0] + ' on time, ' + breakdown[1] + ' early, ' +
-      breakdown[2] + ' late, ' + count(value.eligible) + ' events';
+      breakdown[2] + ' late, ' + events(value.eligible);
     return '<div class="bar-row"><button class="route-button" data-route="' + escape(id) +
       '" aria-label="Filter to ' + escape(routeName(id)) + '" title="' + escape(routeName(id)) + '">' +
       escape(id) + '</button><span class="stack" role="img" aria-label="' + description +
       '" title="' + description + '">' + breakdown.map((width, i) =>
         '<i class="' + ["on-time", "early", "late"][i] + '" style="width:' + width + '"></i>'
-      ).join("") + '</span><span>' + breakdown[0] + '</span></div>';
-  }).join("") || empty("No eligible events for this selection.");
+      ).join("") + '</span><span>' + breakdown[0] + '</span><span>' + count(value.eligible) + '</span></div>';
+  }).join("") : empty("No eligible events for this selection.");
 }
 
 function table(headers, body) {
@@ -104,6 +106,7 @@ function renderStops(records, level) {
     .filter(([id, item]) => item.eligible && snapshot.stops[id])
     .sort((a, b) => b[1].eligible - a[1].eligible);
   const available = new Map(groups);
+  byId("map-count").textContent = count(groups.length) + (groups.length === 1 ? " stop" : " stops");
   const priorStop = stop.value;
   stop.replaceChildren(new Option("Choose a stop", ""));
   for (const [id] of groups.slice().sort((a, b) => snapshot.stops[a[0]][0].localeCompare(snapshot.stops[b[0]][0]))) {
@@ -118,17 +121,17 @@ function renderStops(records, level) {
     const x = (lon - west) * width / (east - west);
     const y = (north - lat) * height / (north - south);
     const otp = rate(value.onTime, value.eligible);
-    const detail = name + ' · ' + percent(otp) + ' OTP · ' + count(value.eligible) + ' events';
+    const detail = name + ' · ' + percent(otp) + ' on time · ' + events(value.eligible);
     return '<circle class="datum" data-stop="' + escape(id) + '" role="img" aria-label="' +
       escape(detail) + '" cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' +
       Math.min(8, 1.9 + Math.sqrt(value.eligible) * .48) + '" fill="' +
-      (otp >= .75 ? palette[0] : palette[2]) + '" fill-opacity=".72" stroke="#fffefa" stroke-width="1"><title>' +
+      (otp >= .75 ? "var(--blue)" : "var(--brick)") + '" fill-opacity=".78" stroke="#fff" stroke-width="1"><title>' +
       escape(detail) + '</title></circle>';
   }).join("");
   byId("stop-map").innerHTML = chart(width, height, "WMATA timepoint stops on a Washington region basemap",
     '<image href="basemap.svg" width="' + width + '" height="' + height + '" aria-hidden="true"/>' + points
   ) + (groups.length ? "" : empty("No mapped stops have eligible events."));
-  byId("stop-table").innerHTML = groups.length ? table(["Most observed stops", "Events", "OTP"], groups.slice(0, 7).map(([id, value]) => [
+  byId("stop-table").innerHTML = groups.length ? table(["Stop", "Eligible", "On time"], groups.slice(0, 7).map(([id, value]) => [
     snapshot.stops[id][0], count(value.eligible), percent(rate(value.onTime, value.eligible))
   ])) : empty("No eligible stop observations.");
   updateStop(available);
@@ -146,7 +149,7 @@ function updateStop(groups) {
   const selected = groups.get(stop.value);
   byId("stop-detail-title").textContent = selected ? snapshot.stops[stop.value][0] : "Stop details";
   byId("stop-detail").textContent = selected ?
-    count(selected.eligible) + " eligible events · " + percent(rate(selected.onTime, selected.eligible)) + " on time" :
+    events(selected.eligible) + " · " + percent(rate(selected.onTime, selected.eligible)) + " on time" :
     "Choose a stop on the map or from the list.";
   byId("stop-map").querySelectorAll("[data-stop]").forEach(dot => {
     dot.classList.toggle("selected", dot.dataset.stop === stop.value);
@@ -179,7 +182,7 @@ function renderHeadways(id) {
     const detail = routeName(key) + ' · ' + percent(rate(b, n)) + ' bunched · ' + count(n) + ' pairs';
     return '<circle class="datum" role="img" tabindex="0" data-detail="' + escape(detail) +
       '" aria-label="' + escape(detail) + '" cx="' + (48 + n / xMax * 641) + '" cy="' +
-      (178 - b / n * 162) + '" r="' + (id ? 6 : 4) + '" fill="#087e73" fill-opacity=".78"><title>' +
+      (178 - b / n * 162) + '" r="' + (id ? 6 : 4) + '" fill="var(--blue)" fill-opacity=".78"><title>' +
       escape(detail) + '</title></circle>';
   }).join("");
   byId("scatter").innerHTML = chart(720, 222, "Bunching percentage by number of observed headway pairs",
@@ -195,20 +198,21 @@ function renderHeadways(id) {
 function renderQuality(records, id) {
   const all = labels.map((_, index) => aggregate(records, index, null).get(""));
   const loose = all[0]?.eligible ?? 0;
-  byId("sensitivity").innerHTML = labels.map((label, i) => {
+  const header = '<div class="sensitivity-row sensitivity-heading"><span>Filter</span><span>Eligible sample</span><span>On time</span></div>';
+  byId("sensitivity").innerHTML = header + labels.map((label, i) => {
     const value = all[i];
     const n = value?.eligible ?? 0;
     const share = percent(rate(n, loose));
     return '<div class="sensitivity-row"><strong>' + label + '</strong><div><span class="stack" role="img" aria-label="' +
       (loose ? share + ' retained' : 'No eligible observations') + '"><i class="on-time" style="width:' +
-      (loose ? share : "0%") + '"></i></span><small>' + count(n) + ' events · ' + share +
-      ' retained</small></div><strong>' + percent(rate(value?.onTime, n), 2) + ' OTP</strong></div>';
+      (loose ? share : "0%") + '"></i></span><small>' + count(n) + ' · ' + share +
+      ' retained</small></div><strong>' + percent(rate(value?.onTime, n), 2) + '</strong></div>';
   }).join("");
   const strict = all[2]?.eligible ?? 0;
   if (strict && loose) {
     const shift = 100 * (all[2].onTime / strict - all[0].onTime / loose);
     byId("quality-insight").textContent = 'Strict retains ' + percent(rate(strict, loose)) +
-      ' of the Loose sample. Measured OTP moves by ' + (shift >= 0 ? "+" : "−") +
+      ' of the Loose sample. The on-time rate shifts by ' + (shift >= 0 ? "+" : "−") +
       Math.abs(shift).toFixed(2) + ' percentage points.';
   } else {
     byId("quality-insight").textContent = "This selection has no Strict events to compare.";
@@ -237,11 +241,11 @@ function render() {
   const total = aggregate(records, level, null).get("") ??
     { scheduled: 0, inferred: 0, eligible: 0, onTime: 0, early: 0 };
   byId("kpis").innerHTML = metricCards([
-    ["On time", percent(rate(total.onTime, total.eligible))],
+    ["On-time performance", percent(rate(total.onTime, total.eligible))],
     ["Early", percent(rate(total.early, total.eligible))],
     ["Late", percent(rate(total.eligible - total.onTime - total.early, total.eligible))],
     ["Eligible timepoints", count(total.eligible)],
-    ["Inferred coverage · all qualities", percent(rate(total.inferred, total.scheduled))]
+    ["Inferred coverage · all filters", percent(rate(total.inferred, total.scheduled))]
   ]);
   renderHours(records, level);
   renderRoutes(records, level);
