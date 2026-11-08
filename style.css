@@ -86,8 +86,9 @@ fieldset input { position: absolute; opacity: 0; }
 .map-tools button:disabled { opacity: .5; cursor: default; }
 .map-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-top: 9px; }
 .map-footer .legend { margin: 0; }
-.map-credit, .map-help { color: var(--quiet); margin: 0; font-size: .73rem; }
-.map-help { margin-top: 6px; }
+.map-viewport { position: relative; }
+.map-credit { position: absolute; right: 1px; bottom: 1px; padding: 1px 5px; background: #fffffff0; color: var(--ink); font-size: .7rem; }
+.map-help { color: var(--quiet); margin: 6px 0 0; font-size: .73rem; }
 .chart { width: 100%; display: block; overflow: visible; }
 .chart text { fill: var(--quiet); font: 12px var(--mono); }
 .chart .grid { stroke: var(--line); stroke-width: 1; }

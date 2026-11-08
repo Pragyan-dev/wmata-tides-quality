@@ -6,11 +6,12 @@
   <meta name="description" content="Explore how data quality affects measured on-time performance for WMATA buses.">
   <meta name="theme-color" content="#172b42">
   <title>WMATA Bus Reliability Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
   <script defer src="snapshot.js"></script>
   <script defer src="basemap.js"></script>
-  <script defer src="map-navigation.js"></script>
-  <script defer src="dashboard.js?v=3"></script>
+  <script defer src="street-map.js"></script>
+  <script defer src="map-navigation.js?v=4"></script>
+  <script defer src="dashboard.js?v=4"></script>
 </head>
 <body>
   <a class="skip" href="#dashboard">Skip to dashboard</a>
@@ -74,10 +75,13 @@
           <button id="map-fit" type="button" disabled>Fit route</button>
           <button id="map-reset" type="button">Full region</button>
         </div>
-        <div id="stop-map" tabindex="0" role="group" aria-label="Interactive stop map" aria-describedby="map-help"></div>
+        <div class="map-viewport">
+          <div id="stop-map" tabindex="0" role="group" aria-label="Interactive stop map" aria-describedby="map-help"></div>
+          <a class="map-credit" href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>
+        </div>
+        <p id="map-status" class="map-help" role="status" hidden>Some street map tiles could not load.</p>
         <div class="map-footer">
           <div class="legend"><span class="on-time">At least 75% on time</span><span class="late">Below 75% on time</span></div>
-          <p class="map-credit">Basemap <a href="https://www.census.gov/data/developers/data-sets/TIGERweb-map-service.html">U.S. Census TIGERweb</a></p>
         </div>
         <p id="map-help" class="map-help">Zoom with + and −, then drag or use the arrow keys to pan.</p>
       </section>

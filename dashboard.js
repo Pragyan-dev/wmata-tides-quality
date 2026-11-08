@@ -15,7 +15,12 @@ const routeName = id => id + (snapshot.routes[id] ? " · " + snapshot.routes[id]
 const route = byId("route");
 const stop = byId("stop");
 const mapSurface = byId("stop-map");
-const mapNavigation = setupMapNavigation(mapSurface, stopMap);
+const streetMap = streetMapProjection(stopMap);
+mapSurface.innerHTML = chart(streetMap.width, streetMap.height, "WMATA timepoint stops on a Washington region street map",
+  '<g id="street-tiles" aria-hidden="true" data-source="https://tile.openstreetmap.org/{z}/{x}/{y}.png"></g><g id="stop-markers"></g>'
+);
+const scheduleTiles = setupStreetTiles(mapSurface.querySelector("svg"), streetMap, byId("map-status"));
+const mapNavigation = setupMapNavigation(mapSurface, streetMap, scheduleTiles);
 
 function aggregate(records, level, keyIndex) {
   const groups = new Map();
@@ -108,7 +113,9 @@ function renderStops(records, level) {
     .filter(([id, item]) => item.eligible && snapshot.stops[id])
     .sort((a, b) => b[1].eligible - a[1].eligible);
   const available = new Map(groups);
-  byId("map-count").textContent = count(groups.length) + (groups.length === 1 ? " stop" : " stops");
+  byId("map-count").textContent = groups.length
+    ? count(groups.length) + (groups.length === 1 ? " stop" : " stops")
+    : "No eligible stops";
   const priorStop = stop.value;
   stop.replaceChildren(new Option("Choose a stop", ""));
   for (const [id] of groups.slice().sort((a, b) => snapshot.stops[a[0]][0].localeCompare(snapshot.stops[b[0]][0]))) {
@@ -117,11 +124,9 @@ function renderStops(records, level) {
   stop.value = available.has(priorStop) ? priorStop : "";
   stop.disabled = groups.length === 0;
 
-  const { west, south, east, north, width, height } = stopMap;
   const points = groups.slice().reverse().map(([id, value]) => {
     const [name, lat, lon] = snapshot.stops[id];
-    const x = (lon - west) * width / (east - west);
-    const y = (north - lat) * height / (north - south);
+    const [x, y] = streetMap.project(lat, lon);
     const otp = rate(value.onTime, value.eligible);
     const detail = name + ' · ' + percent(otp) + ' on time · ' + events(value.eligible);
     return '<circle class="datum" data-stop="' + escape(id) + '" role="img" aria-label="' +
@@ -130,9 +135,7 @@ function renderStops(records, level) {
       (otp >= .75 ? "var(--blue)" : "var(--brick)") + '" fill-opacity=".78" stroke="#fff" stroke-width="1"><title>' +
       escape(detail) + '</title></circle>';
   }).join("");
-  mapSurface.innerHTML = chart(width, height, "WMATA timepoint stops on a Washington region basemap",
-    '<image href="basemap.svg" width="' + width + '" height="' + height + '" aria-hidden="true"/>' + points
-  ) + (groups.length ? "" : empty("No mapped stops have eligible events."));
+  byId("stop-markers").innerHTML = points;
   byId("stop-table").innerHTML = groups.length ? table(["Stop", "Eligible", "On time"], groups.slice(0, 7).map(([id, value]) => [
     snapshot.stops[id][0], count(value.eligible), percent(rate(value.onTime, value.eligible))
   ])) : empty("No eligible stop observations.");
