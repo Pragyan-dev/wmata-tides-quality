@@ -6,10 +6,11 @@
   <meta name="description" content="Explore how data quality affects measured on-time performance for WMATA buses.">
   <meta name="theme-color" content="#172b42">
   <title>WMATA Bus Reliability Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
   <script defer src="snapshot.js"></script>
   <script defer src="basemap.js"></script>
-  <script defer src="dashboard.js?v=2"></script>
+  <script defer src="map-navigation.js"></script>
+  <script defer src="dashboard.js?v=3"></script>
 </head>
 <body>
   <a class="skip" href="#dashboard">Skip to dashboard</a>
@@ -67,11 +68,18 @@
           <div><h2 id="stops-title">Timepoint stop map</h2><p>Select a stop to see its on-time rate. Larger dots have more eligible observations.</p></div>
           <span class="map-count" id="map-count"></span>
         </div>
-        <div id="stop-map"></div>
+        <div class="map-tools" role="group" aria-label="Map controls">
+          <button id="map-zoom-in" class="map-zoom" type="button" aria-label="Zoom in">+</button>
+          <button id="map-zoom-out" class="map-zoom" type="button" aria-label="Zoom out">−</button>
+          <button id="map-fit" type="button" disabled>Fit route</button>
+          <button id="map-reset" type="button">Full region</button>
+        </div>
+        <div id="stop-map" tabindex="0" role="group" aria-label="Interactive stop map" aria-describedby="map-help"></div>
         <div class="map-footer">
           <div class="legend"><span class="on-time">At least 75% on time</span><span class="late">Below 75% on time</span></div>
           <p class="map-credit">Basemap <a href="https://www.census.gov/data/developers/data-sets/TIGERweb-map-service.html">U.S. Census TIGERweb</a></p>
         </div>
+        <p id="map-help" class="map-help">Zoom with + and −, then drag or use the arrow keys to pan.</p>
       </section>
 
       <div class="inspector">

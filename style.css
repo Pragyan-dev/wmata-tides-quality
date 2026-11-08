@@ -79,9 +79,15 @@ fieldset input { position: absolute; opacity: 0; }
 .section-head { align-items: baseline; margin-bottom: 11px; }
 .report-section { margin-top: 28px; }
 .map-count { flex: none; margin-top: 1px; color: var(--quiet); font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.map-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.map-tools button { min-height: 36px; padding: 4px 9px; border: 1px solid #a2b4c5; border-radius: 3px; background: var(--panel); color: var(--ink); font-size: .8rem; font-weight: 700; cursor: pointer; }
+.map-tools .map-zoom { min-width: 36px; font-size: 1.15rem; line-height: 1; }
+.map-tools button:hover:not(:disabled) { background: #e7f0f7; }
+.map-tools button:disabled { opacity: .5; cursor: default; }
 .map-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-top: 9px; }
 .map-footer .legend { margin: 0; }
-.map-credit { color: var(--quiet); margin: 0; font-size: .73rem; }
+.map-credit, .map-help { color: var(--quiet); margin: 0; font-size: .73rem; }
+.map-help { margin-top: 6px; }
 .chart { width: 100%; display: block; overflow: visible; }
 .chart text { fill: var(--quiet); font: 12px var(--mono); }
 .chart .grid { stroke: var(--line); stroke-width: 1; }
@@ -89,6 +95,10 @@ fieldset input { position: absolute; opacity: 0; }
 .chart .datum:focus, .chart .datum.selected { stroke: var(--ink); stroke-width: 2.5; outline: none; }
 .chart .value { fill: var(--ink); font-weight: bold; }
 #stop-map .chart { overflow: hidden; border: 1px solid var(--line); background: #f6f6ee; }
+#stop-map { touch-action: pan-y pinch-zoom; user-select: none; }
+#stop-map.zoomed { cursor: grab; touch-action: none; }
+#stop-map.dragging, #stop-map.dragging .datum { cursor: grabbing; }
+#stop-map .datum { transform-box: fill-box; transform-origin: center; transform: scale(var(--marker-scale, 1)); }
 #scatter { max-width: 940px; margin-inline: auto; }
 .chart-detail { min-height: 1.5em; }
 .bar-row { display: grid; grid-template-columns: 45px minmax(0, 1fr) 49px 56px; align-items: center; gap: 9px; padding: 4px 0; font-size: .78rem; font-variant-numeric: tabular-nums; }

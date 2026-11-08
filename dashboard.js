@@ -14,6 +14,8 @@ const empty = message => '<p class="empty">' + escape(message) + '</p>';
 const routeName = id => id + (snapshot.routes[id] ? " · " + snapshot.routes[id] : "");
 const route = byId("route");
 const stop = byId("stop");
+const mapSurface = byId("stop-map");
+const mapNavigation = setupMapNavigation(mapSurface, stopMap);
 
 function aggregate(records, level, keyIndex) {
   const groups = new Map();
@@ -128,15 +130,19 @@ function renderStops(records, level) {
       (otp >= .75 ? "var(--blue)" : "var(--brick)") + '" fill-opacity=".78" stroke="#fff" stroke-width="1"><title>' +
       escape(detail) + '</title></circle>';
   }).join("");
-  byId("stop-map").innerHTML = chart(width, height, "WMATA timepoint stops on a Washington region basemap",
+  mapSurface.innerHTML = chart(width, height, "WMATA timepoint stops on a Washington region basemap",
     '<image href="basemap.svg" width="' + width + '" height="' + height + '" aria-hidden="true"/>' + points
   ) + (groups.length ? "" : empty("No mapped stops have eligible events."));
   byId("stop-table").innerHTML = groups.length ? table(["Stop", "Eligible", "On time"], groups.slice(0, 7).map(([id, value]) => [
     snapshot.stops[id][0], count(value.eligible), percent(rate(value.onTime, value.eligible))
   ])) : empty("No eligible stop observations.");
   updateStop(available);
-  stop.onchange = () => updateStop(available);
-  byId("stop-map").onclick = event => {
+  mapNavigation.refresh(route.value);
+  stop.onchange = () => {
+    updateStop(available);
+    mapNavigation.reveal(mapSurface.querySelector(".datum.selected"));
+  };
+  mapSurface.onclick = event => {
     const id = event.target.closest("[data-stop]")?.dataset.stop;
     if (id) {
       stop.value = id;
@@ -151,7 +157,7 @@ function updateStop(groups) {
   byId("stop-detail").textContent = selected ?
     events(selected.eligible) + " · " + percent(rate(selected.onTime, selected.eligible)) + " on time" :
     "Choose a stop on the map or from the list.";
-  byId("stop-map").querySelectorAll("[data-stop]").forEach(dot => {
+  mapSurface.querySelectorAll("[data-stop]").forEach(dot => {
     dot.classList.toggle("selected", dot.dataset.stop === stop.value);
   });
 }
