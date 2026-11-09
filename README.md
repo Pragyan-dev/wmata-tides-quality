@@ -15,6 +15,12 @@ Actions.
 The dashboard is built by hand from the extracts, in Power BI (`docs/DASHBOARD_SPEC.md`)
 or Tableau, which runs on macOS (`docs/TABLEAU_SPEC.md`).
 
+## Project video
+
+[Watch the 23-second demo](https://pragyan-dev.github.io/wmata-tides-quality/media/wmata-project-demo.mp4)
+
+<a href="https://pragyan-dev.github.io/wmata-tides-quality/media/wmata-project-demo.mp4"><img src="https://pragyan-dev.github.io/wmata-tides-quality/media/wmata-project-demo.jpg" alt="Preview showing WMATA bus positions across the Washington region" width="560"></a>
+
 ## What it does
 
 1. **Collect.** `collector/` polls WMATA's VehiclePositions and TripUpdates feeds every 30
