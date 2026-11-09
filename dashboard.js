@@ -16,8 +16,9 @@ const route = byId("route");
 const stop = byId("stop");
 const mapSurface = byId("stop-map");
 const streetMap = streetMapProjection(stopMap);
-mapSurface.innerHTML = chart(streetMap.width, streetMap.height, "WMATA timepoint stops on a Washington region street map",
-  '<g id="street-tiles" aria-hidden="true" data-source="https://tile.openstreetmap.org/{z}/{x}/{y}.png"></g><g id="stop-markers"></g>'
+mapSurface.innerHTML = chart(streetMap.width, streetMap.height, "WMATA routes and timepoint stops on a Washington region street map",
+  '<g id="street-tiles" aria-hidden="true" data-source="https://tile.openstreetmap.org/{z}/{x}/{y}.png"></g>' +
+  '<g id="route-path" role="img"></g><g id="stop-markers"></g>'
 );
 const scheduleTiles = setupStreetTiles(mapSurface.querySelector("svg"), streetMap, byId("map-status"));
 const mapNavigation = setupMapNavigation(mapSurface, streetMap, scheduleTiles);
@@ -93,7 +94,7 @@ function renderRoutes(records, level) {
     const description = breakdown[0] + ' on time, ' + breakdown[1] + ' early, ' +
       breakdown[2] + ' late, ' + events(value.eligible);
     return '<div class="bar-row"><button class="route-button" data-route="' + escape(id) +
-      '" aria-label="Filter to ' + escape(routeName(id)) + '" title="' + escape(routeName(id)) + '">' +
+      '" aria-label="Show ' + escape(routeName(id)) + ' on the map" title="' + escape(routeName(id)) + '">' +
       escape(id) + '</button><span class="stack" role="img" aria-label="' + description +
       '" title="' + description + '">' + breakdown.map((width, i) =>
         '<i class="' + ["on-time", "early", "late"][i] + '" style="width:' + width + '"></i>'
@@ -107,6 +108,23 @@ function table(headers, body) {
     '</tr></thead><tbody>' + body.map(cells => '<tr>' +
       cells.map(cell => '<td>' + escape(cell) + '</td>').join("") +
       '</tr>').join("") + '</tbody></table></div>';
+}
+
+function renderRoutePath(id) {
+  const paths = snapshot.routeShapes?.[id] ?? [];
+  const line = paths.map(points => "M " + points.map(([lat, lon]) => {
+    const [x, y] = streetMap.project(lat, lon);
+    return x.toFixed(2) + "," + y.toFixed(2);
+  }).join(" ")).join(" ");
+  const layer = byId("route-path");
+  layer.innerHTML = line
+    ? '<path class="route-outline" d="' + line + '"/><path class="route-line" d="' + line + '"/>'
+    : "";
+  layer.setAttribute("aria-label", "Scheduled path for " + routeName(id));
+  layer.setAttribute("aria-hidden", String(!line));
+  const legend = byId("map-route-legend");
+  legend.hidden = !line;
+  legend.textContent = line ? "Scheduled path for " + id : "";
 }
 
 function renderStops(records, level) {
@@ -141,6 +159,7 @@ function renderStops(records, level) {
     snapshot.stops[id][0], count(value.eligible), percent(rate(value.onTime, value.eligible))
   ])) : empty("No eligible stop observations.");
   updateStop(available);
+  renderRoutePath(route.value);
   mapNavigation.refresh(route.value);
   stop.onchange = () => {
     updateStop(available);
@@ -290,7 +309,8 @@ byId("route-chart").addEventListener("click", event => {
   if (button) {
     route.value = button.dataset.route;
     render();
-    route.focus({ preventScroll: true });
+    byId("stops").scrollIntoView({ block: "start" });
+    mapSurface.focus({ preventScroll: true });
   }
 });
 render();

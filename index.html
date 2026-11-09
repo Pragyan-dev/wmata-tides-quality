@@ -6,12 +6,12 @@
   <meta name="description" content="Explore how data quality affects measured on-time performance for WMATA buses.">
   <meta name="theme-color" content="#172b42">
   <title>WMATA Bus Reliability Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=5">
-  <script defer src="snapshot.js"></script>
+  <link rel="stylesheet" href="style.css?v=6">
+  <script defer src="snapshot.js?v=6"></script>
   <script defer src="basemap.js"></script>
   <script defer src="street-map.js"></script>
-  <script defer src="map-navigation.js?v=4"></script>
-  <script defer src="dashboard.js?v=5"></script>
+  <script defer src="map-navigation.js?v=6"></script>
+  <script defer src="dashboard.js?v=6"></script>
 </head>
 <body>
   <a class="skip" href="#dashboard">Skip to dashboard</a>
@@ -66,7 +66,7 @@
     <div class="workbench">
       <section id="stops" class="panel map-panel" aria-labelledby="stops-title">
         <div class="panel-heading">
-          <div><h2 id="stops-title">Timepoint stop map</h2><p>Select a stop to see its on-time rate. Larger dots have more eligible observations.</p></div>
+          <div><h2 id="stops-title">Route and stop map</h2><p>Choose a route to see its scheduled path. Select a stop for its on-time rate. Larger dots have more eligible observations.</p></div>
           <span class="map-count" id="map-count"></span>
         </div>
         <div class="map-tools" role="group" aria-label="Map controls">
@@ -81,7 +81,7 @@
         </div>
         <p id="map-status" class="map-help" role="status" hidden>Some street map tiles could not load.</p>
         <div class="map-footer">
-          <div class="legend"><span class="on-time">At least 75% on time</span><span class="late">Below 75% on time</span></div>
+          <div class="legend"><span id="map-route-legend" class="route-swatch" hidden></span><span class="on-time">At least 75% on time</span><span class="late">Below 75% on time</span></div>
         </div>
         <p id="map-help" class="map-help">Zoom with + and −, then drag or use the arrow keys to pan.</p>
       </section>

@@ -37,12 +37,17 @@ function setupMapNavigation(surface, { width, height }, scheduleTiles) {
 
   function fitRoute() {
     const markers = [...svg.querySelectorAll("[data-stop]")];
-    if (!routeId || !markers.length) {
+    const pathBounds = svg.querySelector("#route-path path")?.getBBox();
+    if (!routeId || (!markers.length && !pathBounds)) {
       reset();
       return;
     }
     const xs = markers.map(marker => marker.cx.baseVal.value);
     const ys = markers.map(marker => marker.cy.baseVal.value);
+    if (pathBounds) {
+      xs.push(pathBounds.x, pathBounds.x + pathBounds.width);
+      ys.push(pathBounds.y, pathBounds.y + pathBounds.height);
+    }
     const west = Math.min(...xs);
     const east = Math.max(...xs);
     const north = Math.min(...ys);
@@ -108,7 +113,7 @@ function setupMapNavigation(surface, { width, height }, scheduleTiles) {
 
   return {
     refresh(id) {
-      fitButton.disabled = !id || !svg.querySelector("[data-stop]");
+      fitButton.disabled = !id || !svg.querySelector("[data-stop], #route-path path");
       if (id === routeId) setView(zoom, x, y);
       else {
         routeId = id;
