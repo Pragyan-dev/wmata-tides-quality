@@ -99,25 +99,28 @@ def write_datapackage(out_dir: Path, date: str | None, counts: dict[str, int]) -
     return package
 
 
-def validate(out_dir: Path, package: dict) -> bool:
+def validate(out_dir: Path, package: dict) -> dict[str, dict]:
+    """Validate the package. Returns {"datapackage" or table name: {valid, rows, errors}}."""
     profile = json.loads((SPEC_DIR / "tides-datapackage-profile.json").read_text())
-    ok = True
+    results = {}
     try:
         jsonschema.validate(package, profile)
+        results["datapackage"] = {"valid": True, "rows": None, "errors": {}}
         print("datapackage.json: valid against tides-datapackage-profile.json")
     except jsonschema.ValidationError as exc:
+        results["datapackage"] = {"valid": False, "rows": None, "errors": {"profile": 1}}
         print(f"datapackage.json: INVALID: {exc.message}")
-        ok = False
 
     report = Package(str(out_dir / "datapackage.json")).validate()
     for task in report.tasks:
-        errors = Counter(e.type for e in task.errors)
+        errors = dict(Counter(e.type for e in task.errors))
         rows = task.stats.get("rows")
+        results[task.name] = {"valid": task.valid, "rows": rows, "errors": errors}
         status = "valid" if task.valid else "INVALID"
-        print(f"{task.name}: {status}, {rows} rows checked, errors: {dict(errors) or 'none'}")
+        print(f"{task.name}: {status}, {rows} rows checked, errors: {errors or 'none'}")
         for error in task.errors[:3]:
             print(f"    e.g. {error.message}")
-    return ok and report.valid
+    return results
 
 
 def main() -> None:
@@ -134,7 +137,8 @@ def main() -> None:
     for table, n in counts.items():
         print(f"wrote {n} rows to {out_dir / (table + '.csv')}")
     package = write_datapackage(out_dir, args.date, counts)
-    sys.exit(0 if validate(out_dir, package) else 1)
+    results = validate(out_dir, package)
+    sys.exit(0 if all(r["valid"] for r in results.values()) else 1)
 
 
 if __name__ == "__main__":

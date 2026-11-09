@@ -10,7 +10,8 @@ moves when bad data is filtered out. It also runs prior work,
 [gtfs-rt-to-tides](https://github.com/evansiroky/gtfs-rt-to-tides), on the same raw files
 and compares the results.
 
-Stack: Python 3.12, DuckDB, Parquet, dbt-duckdb, frictionless, pytest, ruff, GitHub Actions.
+Stack: Python 3.12, DuckDB, Parquet, dbt-duckdb, Dagster, frictionless, pytest, ruff, GitHub
+Actions.
 The dashboard is built by hand from the extracts, in Power BI (`docs/DASHBOARD_SPEC.md`)
 or Tableau, which runs on macOS (`docs/TABLEAU_SPEC.md`).
 
@@ -35,6 +36,8 @@ or Tableau, which runs on macOS (`docs/TABLEAU_SPEC.md`).
    definition by default; headway adherence; bunching; and the same OTP at loose, moderate,
    and strict quality levels.
 7. **Dashboard extracts.** `scripts/export_powerbi.py` writes CSVs for Power BI or Tableau.
+8. **Orchestration.** Dagster runs steps 2 to 7 once per service day, with a coverage check,
+   the dbt tests, and TIDES validation as asset checks.
 
 ## Architecture
 
@@ -77,6 +80,11 @@ flowchart LR
     MET --> EXP["export_powerbi.py<br/>CSV for Power BI"]
     QUAL --> EXP
     RAW --> CMP["gtfs-rt-to-tides<br/>comparison"]
+
+    DAG["Dagster<br/>daily partitions,<br/>4:00 AM schedule"] -.-> LS
+    DAG -.-> DBT
+    DAG -.-> EXT
+    DAG -.-> EXP
 ```
 
 ## Key findings
@@ -168,6 +176,37 @@ On the fixed window used for the numbers in the docs:
 scripts/build_snapshot.sh
 ```
 
+### Orchestrate with Dagster
+
+The collector keeps running on its own. Dagster runs the daily batch for each service day,
+one partition per day from 3:00 AM to 3:00 AM Eastern, so trips past midnight stay with
+their day:
+
+| Asset | What it does |
+|---|---|
+| `collection_coverage` | Share of the day's 30-second polls that succeeded. Check warns under 95% |
+| `static_gtfs/*` | Runs `collector load-static`, one asset per GTFS table |
+| dbt models | `dbt build` for that day's window into `data/daily/<date>/warehouse.duckdb`. Every dbt test shows up as an asset check |
+| `tides_package` | TIDES CSVs and `datapackage.json` in `data/tides/<date>/`. Blocking check: valid against TIDES v1.0 |
+| `dashboard_extracts` | Power BI / Tableau CSVs in `data/powerbi/<date>/`. Skipped if the TIDES check fails |
+
+Start the UI at http://localhost:3000:
+
+```bash
+scripts/dagster.sh
+```
+
+In the UI, open Jobs, `daily_pipeline`, pick a date partition, and materialize it, or
+launch a backfill for several dates. The schedule `daily_pipeline_schedule` runs each day's
+partition at 4:00 AM once it is turned on in the UI. To run one day from the terminal:
+
+```bash
+DAGSTER_HOME="$PWD/orchestration/dagster_home" .venv/bin/dagster job execute -m orchestration.definitions -j daily_pipeline --tags '{"dagster/partition": "2026-11-06"}'
+```
+
+Each day builds into its own DuckDB file, so the snapshot used by the docs
+(`data/warehouse.duckdb`, from `scripts/build_snapshot.sh`) is never overwritten.
+
 ### Export and report
 
 ```bash
@@ -220,7 +259,8 @@ dbt_project/
   models/marts/metrics/ OTP, headways, bunching, dimensions
   macros/, tests/       SQL helpers and macro tests
 spec/tides-v1.0/        official TIDES v1.0 schemas (CC-BY-4.0)
-scripts/                start/stop, exports, report, comparison, sample builder
+orchestration/          Dagster assets, checks, daily job and schedule
+scripts/                start/stop, Dagster UI, exports, report, comparison, sample builder
 tests/                  pytest
 docs/                   METHODOLOGY, DATA_QUALITY, DASHBOARD_SPEC, TABLEAU_SPEC, dbt docs
 data/                   gitignored, except data/sample/
@@ -259,6 +299,7 @@ The full-day number is [X] GB until a complete day is collected.
   prior work this project compares against. Its raw folder layout is reused so its parsers
   run on this project's files.
 - WMATA for the bus GTFS and GTFS-Realtime feeds, through the WMATA developer API.
+- [Dagster](https://dagster.io) and dagster-dbt for orchestration.
 - [gtfs-realtime-bindings](https://github.com/MobilityData/gtfs-realtime-bindings),
   [DuckDB](https://duckdb.org), [dbt-duckdb](https://github.com/duckdb/dbt-duckdb),
   [frictionless](https://framework.frictionlessdata.io), and

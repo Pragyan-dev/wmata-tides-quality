@@ -25,8 +25,16 @@ jobs:
           ruff check .
           ruff format --check .
 
+      # The Dagster tests load the dbt manifest, so parse dbt first.
+      - name: dbt parse
+        working-directory: dbt_project
+        run: dbt parse --profiles-dir .
+
       - name: Unit tests
         run: pytest -q
+
+      - name: Dagster definitions load
+        run: dagster definitions validate -m orchestration.definitions
 
       # The committed sample (data/sample) is one hour of real WMATA data for three
       # routes. Three referential integrity tests warn on it by design; see

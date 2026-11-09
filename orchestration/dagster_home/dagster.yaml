@@ -1,0 +1,6 @@
+# Dagster instance settings for local runs (scripts/dagster.sh sets DAGSTER_HOME here).
+# Run history and logs are stored in this folder and are gitignored.
+run_queue:
+  max_concurrent_runs: 2   # each partition has its own DuckDB file, but dbt builds are memory heavy
+telemetry:
+  enabled: false

@@ -46,6 +46,18 @@ def select_sql(con, table: str) -> str:
     return f"SELECT {', '.join(columns)} FROM {table} ORDER BY ALL"
 
 
+def export_all(db: str, out: Path) -> dict[str, int]:
+    """Write every table in TABLES to out/<name>.csv. Returns row counts."""
+    out.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(db, read_only=True)
+    con.execute("SET TimeZone = 'America/New_York'")
+    counts = {}
+    for name, table in TABLES.items():
+        con.execute(f"COPY ({select_sql(con, table)}) TO '{out / (name + '.csv')}' (HEADER)")
+        counts[name] = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+    return counts
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default=str(ROOT / "data" / "warehouse.duckdb"))
@@ -53,14 +65,8 @@ def main() -> None:
     args = parser.parse_args()
 
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect(args.db, read_only=True)
-    con.execute("SET TimeZone = 'America/New_York'")
-    for name, table in TABLES.items():
-        path = out / f"{name}.csv"
-        con.execute(f"COPY ({select_sql(con, table)}) TO '{path}' (HEADER)")
-        rows = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
-        print(f"{rows:>8} rows  {path.relative_to(ROOT)}")
+    for name, rows in export_all(args.db, out).items():
+        print(f"{rows:>8} rows  {out / (name + '.csv')}")
 
 
 if __name__ == "__main__":

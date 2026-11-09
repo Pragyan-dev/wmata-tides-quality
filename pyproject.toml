@@ -15,13 +15,19 @@ dependencies = [
     "duckdb>=1.0",
     "dbt-duckdb>=1.9",
     "frictionless>=5.18",
+    "dagster>=1.13",
+    "dagster-webserver>=1.13",
+    "dagster-dbt>=0.29",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [tool.setuptools]
-packages = ["collector"]
+packages = ["collector", "orchestration"]
+
+[tool.dagster]
+module_name = "orchestration.definitions"
 
 [tool.ruff]
 line-length = 100
