@@ -6,12 +6,12 @@
   <meta name="description" content="Explore how data quality affects measured on-time performance for WMATA buses.">
   <meta name="theme-color" content="#172b42">
   <title>WMATA Bus Reliability Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
   <script defer src="snapshot.js"></script>
   <script defer src="basemap.js"></script>
   <script defer src="street-map.js"></script>
   <script defer src="map-navigation.js?v=4"></script>
-  <script defer src="dashboard.js?v=4"></script>
+  <script defer src="dashboard.js?v=5"></script>
 </head>
 <body>
   <a class="skip" href="#dashboard">Skip to dashboard</a>
@@ -44,7 +44,7 @@
       <a href="#dashboard">Overview</a>
       <a href="#stops">Stop map</a>
       <a href="#schedule">Schedule adherence</a>
-      <a href="#headways">Headways</a>
+      <a href="#headways">Bus spacing</a>
       <a href="#quality">Data quality</a>
       <a href="#method">Methodology</a>
     </nav>
@@ -127,10 +127,16 @@
     </section>
 
     <section id="headways" class="report-section" aria-labelledby="headway-title">
-      <div class="section-head"><h2 id="headway-title">Headways and bunching</h2><p>Uses Moderate quality pairs. The route filter applies.</p></div>
-      <div id="headway-kpis" class="kpis headway-kpis"></div>
-      <article class="panel">
-        <div class="panel-heading"><div><h3>Bunching by route and sample size</h3><p>Hover over or focus a point to see its route, pair count, and bunching rate.</p></div></div>
+      <div class="section-head"><h2 id="headway-title">Spacing between buses</h2><p id="headway-scope"></p></div>
+      <p class="headway-intro">A <strong>headway</strong> is the time between bus departures. We compare buses scheduled one after the other at the same stop, on the same route, and in the same direction.</p>
+      <div id="headway-kpis" class="kpis headway-kpis" aria-live="polite"></div>
+      <details class="headway-notes">
+        <summary>How the spacing metrics work</summary>
+        <p>For frequent service, the limit is the scheduled gap plus 15%, rounded up to the next whole minute. A gap can be short enough to count as bunching and still be below the limit.</p>
+        <p>To get the typical gap, we divide each measured gap by its scheduled gap and take the middle result.</p>
+      </details>
+      <article id="headway-comparison" class="panel">
+        <div class="panel-heading"><div><h3>Which routes bunch more often?</h3><p>Each dot is one route. Higher dots show more bunching. Dots farther right have more measured gaps.</p></div></div>
         <div id="scatter"></div>
         <p id="scatter-detail" class="chart-detail" aria-live="polite"></p>
       </article>

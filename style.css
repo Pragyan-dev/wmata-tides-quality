@@ -65,6 +65,9 @@ fieldset input { position: absolute; opacity: 0; }
 .kpi:first-child { border-left: 0; }
 .kpi strong { display: block; margin-bottom: 3px; font-size: clamp(1.5rem, 2.7vw, 2.2rem); font-weight: 700; line-height: 1.08; font-variant-numeric: tabular-nums; }
 .kpi span { display: block; color: var(--quiet); font-size: .78rem; font-weight: 600; }
+.headway-kpis .kpi small { display: block; margin-top: 5px; color: var(--quiet); font-size: .76rem; }
+.headway-intro { margin: 0 0 12px; color: var(--quiet); font-size: .88rem; }
+.headway-notes { margin: 0 0 12px; }
 #kpis .kpi:first-child { background: #e7f0f7; border-left: 3px solid var(--blue); }
 #kpis .kpi:first-child strong { color: #184f77; }
 

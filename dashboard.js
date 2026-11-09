@@ -39,8 +39,9 @@ function aggregate(records, level, keyIndex) {
 }
 
 function metricCards(items) {
-  return items.map(([label, value]) =>
-    '<div class="kpi"><strong>' + escape(value) + '</strong><span>' + escape(label) + '</span></div>'
+  return items.map(([label, value, explanation]) =>
+    '<div class="kpi"><strong>' + escape(value) + '</strong><span>' + escape(label) + '</span>' +
+    (explanation ? '<small>' + escape(explanation) + '</small>' : '') + '</div>'
   ).join("");
 }
 
@@ -167,14 +168,30 @@ function updateStop(groups) {
 
 function renderHeadways(id) {
   const [pairs, bunched, frequent, onTime, ratio] = snapshot.headways[id] ?? [0, 0, 0, 0, null];
+  let typicalGap = "No gaps to compare.";
+  if (ratio !== null) {
+    const difference = Math.round(ratio * 100) - 100;
+    if (ratio < 0) typicalGap = "The later-scheduled bus typically left first.";
+    else if (difference === 0) typicalGap = "About as long as scheduled.";
+    else typicalGap = Math.abs(difference) + "% " + (difference < 0 ? "shorter" : "longer") + " than scheduled.";
+  }
+  byId("headway-scope").textContent = (id ? routeName(id) : "All routes") + " · Moderate quality";
   byId("headway-kpis").innerHTML = metricCards([
-    ["Headway pairs", count(pairs)], ["Bunched", percent(rate(bunched, pairs))],
-    ["Adherence · frequent service", percent(rate(onTime, frequent))],
-    ["Median actual / scheduled", ratio === null ? "—" : ratio.toFixed(2) + "×"]
+    ["Bus gaps measured", count(pairs), "The same bus can contribute at several stops."],
+    ["Bunching rate", percent(rate(bunched, pairs)), pairs
+      ? count(bunched) + " of " + count(pairs) + " gaps counted as bunching (under 2 minutes or out of order)."
+      : "No gaps to compare."],
+    ["Gaps within the limit", percent(rate(onTime, frequent)), frequent
+      ? count(onTime) + " of " + count(frequent) + " gaps between buses scheduled up to 12 minutes apart."
+      : "No measured gaps between buses scheduled up to 12 minutes apart."],
+    ["Typical gap vs. schedule", percent(ratio, 0), typicalGap]
   ]);
-  const groups = Object.entries(snapshot.headways).filter(([key]) => key && (!id || key === id));
+  byId("headway-comparison").hidden = Boolean(id);
+  if (id) return;
+
+  const groups = Object.entries(snapshot.headways).filter(([key]) => key);
   if (!groups.length) {
-    byId("scatter").innerHTML = empty("No headway pairs for this route.");
+    byId("scatter").innerHTML = empty("No bus gaps to compare.");
     byId("scatter-detail").textContent = "";
     return;
   }
@@ -188,17 +205,17 @@ function renderHeadways(id) {
   }).join("");
   const points = groups.map(([key, values]) => {
     const [n, b] = values;
-    const detail = routeName(key) + ' · ' + percent(rate(b, n)) + ' bunched · ' + count(n) + ' pairs';
+    const detail = routeName(key) + ' · ' + count(b) + ' of ' + count(n) + ' measured gaps counted as bunching (' + percent(rate(b, n)) + ')';
     return '<circle class="datum" role="img" tabindex="0" data-detail="' + escape(detail) +
       '" aria-label="' + escape(detail) + '" cx="' + (48 + n / xMax * 641) + '" cy="' +
-      (178 - b / n * 162) + '" r="' + (id ? 6 : 4) + '" fill="var(--blue)" fill-opacity=".78"><title>' +
+      (178 - b / n * 162) + '" r="4" fill="var(--blue)" fill-opacity=".78"><title>' +
       escape(detail) + '</title></circle>';
   }).join("");
-  byId("scatter").innerHTML = chart(720, 222, "Bunching percentage by number of observed headway pairs",
-    grid + points + '<text x="360" y="219" text-anchor="middle">Observed headway pairs</text>'
+  byId("scatter").innerHTML = chart(720, 222, "Bunching rate by number of measured bus gaps",
+    grid + points + '<text x="360" y="219" text-anchor="middle">Bus gaps measured</text>'
   );
   const detail = byId("scatter-detail");
-  detail.textContent = "Low pair counts can produce extreme rates.";
+  detail.textContent = "On a route with few measured gaps, a single bunched pair can make the rate look high.";
   byId("scatter").onfocusin = byId("scatter").onpointerover = event => {
     if (event.target.dataset.detail) detail.textContent = event.target.dataset.detail;
   };
